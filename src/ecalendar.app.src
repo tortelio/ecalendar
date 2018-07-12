@@ -1,0 +1,16 @@
+{application, ecalendar,
+ [{description, "Calendar server application"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { ecalendar_app, []}},
+  {applications,
+   [kernel,
+    stdlib
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.
