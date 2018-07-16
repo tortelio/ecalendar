@@ -6,15 +6,29 @@
 -module(ecalendar_app).
 
 -behaviour(application).
+%%====================================================================
+%% Exports
+%%====================================================================
 
-%% Application callbacks
--export([start/2, stop/1]).
+-export([start/2,
+         stop/1]).
 
 %%====================================================================
 %% API
 %%====================================================================
 
+%% @doc Start the server. Call the appropriate handler.
 start(_StartType, _StartArgs) ->
+    Dispatch = cowboy_router:compile([
+        {'_', [{"/", main_handler, []},
+               {"/sub_handler", sub_handlr, []}
+				]}
+    ]),
+
+    {ok, _} = cowboy:start_clear(my_http_listner,
+        [{port, 8080}],
+        #{env => #{dispatch => Dispatch}}
+    ),
     ecalendar_sup:start_link().
 
 %%--------------------------------------------------------------------

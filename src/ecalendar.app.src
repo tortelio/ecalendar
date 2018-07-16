@@ -5,7 +5,8 @@
   {mod, { ecalendar_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cowboy
    ]},
   {env,[]},
   {modules, []},
