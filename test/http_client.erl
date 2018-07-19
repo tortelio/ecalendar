@@ -16,7 +16,7 @@
 %% API
 -export([connect/2,
          disconnect/1,
-         get/2,
+         get/3,
          put/4]).
 
 %%%=============================================================================
@@ -33,13 +33,13 @@ disconnect(Conn) ->
     ok = gun:close(Conn).
 
 %% @doc Send a GET request to the server and wait until a response is sent.
-get(Conn, Path) ->
-    Ref = gun:get(Conn, Path),
-    {ok, Reply} = gun:await_body(Conn, Ref),
+get(Conn, Path, Params) ->
+    Ref = gun:get(Conn, Path, Params),
+    {_, _, Reply, _} = gun:await(Conn, Ref),
     Reply.
     
 %% @doc Send a PUT request to the server and wait until a response is sent.
 put(Conn, Path, Header, Body) ->
 	Ref = gun:put(Conn, Path, Header, Body),
-	{ok, Reply} = gun:await_body(Conn,Ref),
+	{_, _, Reply, _} = gun:await(Conn,Ref),
 	Reply.

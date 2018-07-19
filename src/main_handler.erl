@@ -11,9 +11,11 @@
 %% API
 -export([init/2,
 		allowed_methods/2,
+        is_authorized/2,
 		content_types_accepted/2,
         content_types_provided/2,
-        get_html/2]).
+        get_html/2
+        ]).
 
 %%====================================================================
 %% API
@@ -32,15 +34,26 @@ allowed_methods(Req, State) ->
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_accepted(Req,State)->
     {[
-        {<<"text/html">>, get_html}
+        {<<"text/html">>, get_html},
+        {<<"text/plain">>, get_html}
     ],Req,State}.
 
 %% @doc Media types provided b the server.
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_provided(Req,State)->
     {[
-        {<<"text/html">>, get_html}
+        {<<"text/html">>, get_html},
+        {<<"text/plain">>, get_html}
     ],Req,State}.
+
+%% @doc Checks if User is authorized to send the request
+is_authorized(Req, State) ->
+    case cowboy_req:parse_header(<<"authorization">>, Req) of
+        {basic, User = <<"jozsi">>, <<"password">>} ->
+            {true, Req, State};
+        _ ->
+            {{false, <<"Basic realm=\"Access to the staging site\"">>}, Req, State}
+    end.
 
 %% @doc Send back a simple html as a response based on the method of the request.
 -spec get_html(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.

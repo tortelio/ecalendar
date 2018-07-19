@@ -3,8 +3,11 @@
 
 -compile(export_all).
 
-all() -> [get_test
-        , use_case_test
+all() -> [connect_test,
+          use_case_test,
+          succesful_login_test,
+          failed_login_test,
+          put_test
         ].
 
 %%------------------------------------------------------------------------------
@@ -35,14 +38,37 @@ end_per_testcase(_, _Config) ->
 %% TESTCASES
 %%------------------------------------------------------------------------------
 
-get_test(_Config) ->
+connect_test(_Config) ->
   {ok, Conn} = http_client:connect("localhost", 8080),
-  %?assertEqual(http_client:get(Conn, "/"),5),
   http_client:disconnect(Conn).
+
+succesful_login_test(_Config) ->
+  TestLoginData = base64:encode(<<"jozsi:password">>),
+  {ok, Conn} = http_client:connect("localhost", 8080),
+  %Reply1 = http_client:get(Conn, "/"),
+  %?assertEqual(<<"HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm='Access to the staging site'">>, Reply1),
+  Reply2 = http_client:get(Conn, "/", [{<<"authorization">>, <<"Basic ", TestLoginData/binary>>}]),
+  ?assertEqual(200, Reply2),
+  ok = http_client:disconnect(Conn).
+
+failed_login_test(_Config) ->
+  TestLoginData = base64:encode(<<"jozsi:badpassword">>),
+  {ok, Conn} = http_client:connect("localhost", 8080),
+  Reply1 = http_client:get(Conn, "/", [{<<"authorization">>, <<"Basic ", TestLoginData/binary>>}]),
+  ?assertEqual(401, Reply1),
+  ok = http_client:disconnect(Conn).
+
+put_test(_Config) ->
+  TestLoginData = base64:encode(<<"jozsi:password">>),
+  {ok, Conn} = http_client:connect("localhost", 8080),
+  Reply1 = http_client:put(Conn, "/", [{<<"authorization">>, <<"Basic ", TestLoginData/binary>>},
+                                       {<<"content-type">>, <<"text/plain">>}], <<"Put ICS here">>),
+  ?assertEqual(200, Reply1),
+  ok = http_client:disconnect(Conn).
 
 use_case_test(_Config) ->
   {ok, Conn} = http_client:connect("localhost", 8080), %User connects to the server
-  http_client:get(Conn, "/"), %User requests the calendar data from server
+  http_client:get(Conn, "/", []), %User requests the calendar data from server
   %?asserEqual(ServerResponse, Requested data),
   %%
   %%Header of the request XML should be handled within the gun application
