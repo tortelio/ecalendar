@@ -38,19 +38,20 @@ end_per_testcase(_, _Config) ->
 %% TESTCASES
 %%------------------------------------------------------------------------------
 
+%%Tries to connect to the server and then disconnects
 connect_test(_Config) ->
   {ok, Conn} = http_client:connect("localhost", 8080),
   http_client:disconnect(Conn).
 
+%%Sends a get request with good login to the server and checks the response code
 succesful_login_test(_Config) ->
   TestLoginData = base64:encode(<<"jozsi:password">>),
   {ok, Conn} = http_client:connect("localhost", 8080),
-  %Reply1 = http_client:get(Conn, "/"),
-  %?assertEqual(<<"HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm='Access to the staging site'">>, Reply1),
   Reply2 = http_client:get(Conn, "/", [{<<"authorization">>, <<"Basic ", TestLoginData/binary>>}]),
   ?assertEqual(200, Reply2),
   ok = http_client:disconnect(Conn).
 
+%%Sends a get request with wrong login to the server and checks the response code
 failed_login_test(_Config) ->
   TestLoginData = base64:encode(<<"jozsi:badpassword">>),
   {ok, Conn} = http_client:connect("localhost", 8080),
@@ -58,6 +59,7 @@ failed_login_test(_Config) ->
   ?assertEqual(401, Reply1),
   ok = http_client:disconnect(Conn).
 
+%%Sends a put request to the server and checks the response code
 put_test(_Config) ->
   TestLoginData = base64:encode(<<"jozsi:password">>),
   {ok, Conn} = http_client:connect("localhost", 8080),
@@ -74,7 +76,9 @@ use_case_test(_Config) ->
   %%Header of the request XML should be handled within the gun application
   %%See here: https://ninenines.eu/docs/en/gun/1.0/guide/http/
   %%
-  %Reply=http_client:put(Conn, <<"
+  %Reply=http_client:put(Conn,"/", [{<<"authorization">>, <<"Basic ", TestLoginData/binary>>},
+  %                            {<<"content-type">>, <<"text/plain">>}],
+  %<<"
   %BEGIN: VCALENDAR
   %Version: 2.0
   %PRODID: -//Company//CalDAV Client// EN

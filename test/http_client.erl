@@ -37,9 +37,9 @@ get(Conn, Path, Params) ->
     Ref = gun:get(Conn, Path, Params),
     {_, _, Reply, _} = gun:await(Conn, Ref),
     Reply.
-    
+
 %% @doc Send a PUT request to the server and wait until a response is sent.
 put(Conn, Path, Header, Body) ->
-	Ref = gun:put(Conn, Path, Header, Body),
-	{_, _, Reply, _} = gun:await(Conn,Ref),
-	Reply.
+    Ref = gun:put(Conn, Path, Header, Body),
+    {_, _, Reply, _} = gun:await(Conn,Ref),
+    Reply.
