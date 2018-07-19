@@ -41,6 +41,7 @@ end_per_testcase(_, Config1) ->
 %% TESTCASES
 %%------------------------------------------------------------------------------
 
+%% @doc User sends a request with proper credentials to the server and get own calendar
 get_calendar(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
@@ -52,6 +53,7 @@ get_calendar(Config) ->
 
     ok.
 
+%% @doc User sends a request with wrong credentials to the server and get calendar
 get_calendar_with_unauthorized_user(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
