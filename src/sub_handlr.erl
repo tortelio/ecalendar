@@ -1,6 +1,6 @@
-%%====================================================================
-%% 
-%%====================================================================
+%%%-------------------------------------------------------------------
+%%% @doc Handles the requests to "/sub".
+%%%-------------------------------------------------------------------
 
 -module(sub_handlr).
 
@@ -8,6 +8,7 @@
 %% Exports
 %%====================================================================
 
+%% API
 -export([init/2,
          content_types_provided/2,
          html_response/2]).
@@ -16,25 +17,22 @@
 %% API
 %%====================================================================
 
-%% @doc Call the REST.
+%% @doc Switch to REST handler behavior.
+-spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
 init(Req,Opts)->
     {cowboy_rest,Req,Opts}.
 
-%% @doc 
+%% @doc Return the list of media types the resource provides in order of preference.
+-spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_provided(Req,State)->
     {[
         {<<"text/html">>, html_response}
     ],Req,State}.
 
-%% @doc
+%% @doc Sends back a simple html as a response.
+-spec html_response(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 html_response(Req, State) ->
-    Body = <<"<html>
-<head>
-	<meta charset=\"utf-8\">
-	<title>Response</title>
-</head>
-<body>
-	<p>This is a simple Response</p>
-</body>
-</html>">>,
+    Body =
+		<<"This is a simple Response">>,
     {Body, Req, State}.
+

@@ -1,5 +1,15 @@
+%%% ----------------------------------------------------------------------------
+%%% @doc The header of ecalendar_app
+%%% ----------------------------------------------------------------------------
+
 -ifndef(ecalendar.hrl).
 -define(ecalendar_hrl,true).
 
--record cal_user{name :: binary(),password() :: binary()}.
+%%%=============================================================================
+%%% Types
+%%%=============================================================================
 
+%% representing a user of the server
+-record cal_user, {name :: binary(),password :: binary()}.
+
+-type cal_user() :: #cal_user{}.
