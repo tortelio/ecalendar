@@ -2,6 +2,7 @@
 
 -export([setup_http_connection/1,
          get_http_connection/1]).
+
 -export([authorization_headers/2]).
 
 setup_http_connection(Config) ->

@@ -4,7 +4,9 @@
 -compile(export_all).
 
 all() -> [get_calendar,
-          get_calendar_with_unregistered_user
+          get_calendar_with_unauthorized_user,
+          add_event,
+          add_event_with_unauthorized_user
          ].
 
 %%------------------------------------------------------------------------------
@@ -43,18 +45,25 @@ get_calendar(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
     Headers = ecalendar_test:authorization_headers(<<"user-1">>, <<"password-1">>),
-    Reply = http_client:get(ConnPid, "/", Headers),
+    Reply = http_client:get(ConnPid, "/user-1/calendar", Headers),
 
-    ?assertEqual(200, Reply),
+    %% write assertions about calendar content
+    ?assertEqual({200, <<"OK">>}, Reply),
 
     ok.
 
-get_calendar_with_unregistered_user(Config) ->
+get_calendar_with_unauthorized_user(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
     Headers = ecalendar_test:authorization_headers(<<"user-1">>, <<"bad-password-1">>),
-    Reply = http_client:get(ConnPid, "/", Headers),
+    Reply = http_client:get(ConnPid, "/user-1/calendar", Headers),
 
-    ?assertEqual(401, Reply),
+    ?assertEqual({401, undefined}, Reply),
 
+    ok.
+
+add_event(_Config) ->
+    ok.
+
+add_event_with_unauthorized_user(_Config) ->
     ok.
