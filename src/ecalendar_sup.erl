@@ -1,6 +1,5 @@
 %%%-------------------------------------------------------------------
-%% @doc ecalendar top level supervisor.
-%% @end
+%%% @doc ecalendar top level supervisor.
 %%%-------------------------------------------------------------------
 
 -module(ecalendar_sup).

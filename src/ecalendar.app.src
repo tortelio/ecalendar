@@ -1,11 +1,12 @@
 {application, ecalendar,
- [{description, "Calendar server application"},
+ [{description, "An OTP application"},
   {vsn, "0.1.0"},
   {registered, []},
   {mod, { ecalendar_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cowboy
    ]},
   {env,[]},
   {modules, []},
