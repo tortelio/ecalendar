@@ -1,8 +1,9 @@
+
 %%%-------------------------------------------------------------------
-%%% @doc Handles the requests to "/" on the server.
+%%% @doc Handles the requests to "/:username/calendar" on the server.
 %%%-------------------------------------------------------------------
 
--module(calendar_handler).
+-module(component_handler).
 
 %%====================================================================
 %% Exports
@@ -15,7 +16,8 @@
         is_authorized/2,
         content_types_accepted/2,
         content_types_provided/2,
-        propfind_calendar/2]).
+        calendar_component/2
+        ]).
 
 %%====================================================================
 %% API
@@ -26,26 +28,26 @@
 init(Req,Opts)->
     {cowboy_rest,Req,Opts}.
 
-%% @doc Set the allowed http methods for this handler.
+%% @doc Set the allowed methods for this handler.
 allowed_methods(Req, State) ->
-{[<<"PROPFIND">>], Req, State}.
+{[], Req, State}.
 
-%% @doc Set the allowed http methods for this handler.
+%% @doc Set the known methods for this handler.
 known_methods(Req, State) ->
-{[<<"PROPFIND">>], Req, State}.
+{[], Req, State}.
 
 %% @doc Media types accepted by the server.
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_accepted(Req,State)->
     {[
-        {<<"text/xml">>, put_ics}
+        {<<"text/calendar">>, calendar_component}     
     ],Req,State}.
 
 %% @doc Media types provided by the server.
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_provided(Req,State)->
     {[
-        {<<"text/xml">>, calendar_ics}
+        {<<"text/calendar">>, calendar_component}
     ],Req,State}.
     
 %% @doc Check the authorization of the request.
@@ -59,9 +61,8 @@ is_authorized(Req, State) ->
     end.
 
 %% @doc Send back a simple response based on the method of the request.
--spec propfind_calendar(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
-propfind_calendar(Req, State) ->
-    Body = {true, cowboy_req:reply(200, #{}, , Req)}
-    
-    {Body,Req,State}.
+-spec calendar_component(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
+calendar_component(Req, State) ->
+    Body = cowboy_req:method(Req),
+  {Body,Req,State}.
   
