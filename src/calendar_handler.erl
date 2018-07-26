@@ -39,8 +39,8 @@ known_methods(Req, State) ->
 content_types_accepted(Req,State)->
     io:format("CONT"),
     {[
-        {{<<"text">>, <<"xml">>, []}, propfind_calendar},
-        {{<<"text">>, <<"calendar">>, []}, propfind_calendar2}
+        {{<<"text">>, <<"xml">>, '*'}, propfind_calendar},
+        {{<<"text">>, <<"calendar">>, '*'}, propfind_calendar}
     ],Req,State}.
 
 %% @doc Media types provided by the server.
@@ -49,7 +49,7 @@ content_types_provided(Req,State)->
     io:format("CONT2"),
     {[
         {{<<"text">>, <<"xml">>, []}, propfind_calendar},
-        {{<<"text">>, <<"calendar">>, []}, propfind_calendar2}
+        {{<<"text">>, <<"calendar">>, []}, propfind_calendar}
     ],Req,State}.
 
 %% @doc Check the authorization of the request.
@@ -68,11 +68,5 @@ is_authorized(Req, State) ->
 propfind_calendar(Req, State) ->
     io:format("PROP"),
     Body2 = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR">>,
-    Body3 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
-    {Body2, Req, State}.
-
-propfind_calendar2(Req, State) ->
-    io:format("PROP2"),
-    Body2 = <<"BEGIN:VCALENDAR\r\nVERSION:1.0\r\nEND:VCALENDAR">>,
     Body3 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
     {Body2, Req, State}.
