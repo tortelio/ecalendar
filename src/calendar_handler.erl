@@ -24,14 +24,15 @@
 %% @doc Switch to REST handler behavior.
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-    ReturnKey = ets:first(jozsical),
-    {ok, Body} = ets_rec_lookup(jozsical, ReturnKey, <<"">>),
+    Body = get_ets_data(jozsical, ets:first(jozsical), <<"">>),
     Req = cowboy_req:reply(200, #{}, Body, Req0),
     {ok, Req, State};
 
 init(Req,Opts)->
     {cowboy_rest,Req,Opts}.
 
+%% NOTE: These callbacks seems useless so far, because PROPFIND requests are
+%% handled at init/2, and no other request should be handled by this handler
 %% @doc Set the allowed http methods for this handler.
 allowed_methods(Req, State) ->
     {[<<"PUT">>, <<"PROPFIND">>], Req, State}.
@@ -72,23 +73,20 @@ is_authorized(Req, State) ->
 %% @doc Send back a simple response based on the method of the request.
 -spec propfind_calendar(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 propfind_calendar(Req, State) ->
-    io:format("PROP"),
     Body2 = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR">>,
-    Body3 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
-    {Body2, Req, State}.
+    Req0 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
+    {"", Req0, State}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
 %% @doc a recursive function that concatenates all the element of an ets
-ets_rec_lookup(cal, key, Acc) ->
-    NextKey = ets:next(cal,key),
-    case NextKey of
+get_ets_data(Cal, Key, Acc) ->
+    case Key of
         '$end_of_table' ->
-            [{ReturnKey, Return} | _] = ets:lookup(cal, key),
-            << Acc/binary, Return/binary >>,
-            {ok, Acc};
-        _ -> 
-            ets_rec_lookup(cal, NextKey, Acc),
+            Acc;
+        _ ->
+            [{Key, Return} | _] = ets:lookup(Cal, Key),
+            get_ets_data(Cal, ets:next(Cal, Key), << Acc/binary, Return/binary >>)
     end.
