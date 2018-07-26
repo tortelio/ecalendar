@@ -24,9 +24,9 @@
 %% @doc Switch to REST handler behavior.
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-    ReturnKey = ets:last(jozsical),
-    [{ReturnKey, Return} | _] = ets:lookup(jozsical, ReturnKey),
-    Req = cowboy_req:reply(200, #{}, Return, Req0),
+    ReturnKey = ets:first(jozsical),
+    {ok, Body} = ets_rec_lookup(jozsical, ReturnKey, <<"">>),
+    Req = cowboy_req:reply(200, #{}, Body, Req0),
     {ok, Req, State};
 
 init(Req,Opts)->
@@ -76,3 +76,19 @@ propfind_calendar(Req, State) ->
     Body2 = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR">>,
     Body3 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
     {Body2, Req, State}.
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
+
+%% @doc a recursive function that concatenates all the element of an ets
+ets_rec_lookup(cal, key, Acc) ->
+    NextKey = ets:next(cal,key),
+    case NextKey of
+        '$end_of_table' ->
+            [{ReturnKey, Return} | _] = ets:lookup(cal, key),
+            << Acc/binary, Return/binary >>,
+            {ok, Acc};
+        _ -> 
+            ets_rec_lookup(cal, NextKey, Acc),
+    end.
