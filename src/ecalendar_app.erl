@@ -20,12 +20,12 @@
 %% @doc Start the server. Call the appropriate handler.
 start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([
-        {'_', [
-                {"/:username/calendar", calenar_handler,[]},
-                {"/:username/calendar/components", component_handler,[]},
-    ]),
+                                      {'_', [
+                                             {"/:username/calendar", calendar_handler,[]},
+                                             {"/:username/calendar/:component", component_handler,[]}
+                                            ]}]),
 
-    {ok, _} = cowboy:start_clear(my_http_listner,
+    {ok, _} = cowboy:start_clear(http,
         [{port, 8080}],
         #{env => #{dispatch => Dispatch}}
     ),

@@ -30,26 +30,26 @@ init(Req,Opts)->
 
 %% @doc Set the allowed methods for this handler.
 allowed_methods(Req, State) ->
-{[], Req, State}.
+    {[], Req, State}.
 
 %% @doc Set the known methods for this handler.
 known_methods(Req, State) ->
-{[], Req, State}.
+    {[], Req, State}.
 
 %% @doc Media types accepted by the server.
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_accepted(Req,State)->
     {[
-        {<<"text/calendar">>, calendar_component}     
-    ],Req,State}.
+      {<<"text/calendar">>, calendar_component}
+     ],Req,State}.
 
 %% @doc Media types provided by the server.
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_provided(Req,State)->
     {[
-        {<<"text/calendar">>, calendar_component}
-    ],Req,State}.
-    
+      {<<"text/calendar">>, calendar_component}
+     ],Req,State}.
+
 %% @doc Check the authorization of the request.
 is_authorized(Req, State) ->
     Username = cowboy_req:binding(username, Req),
@@ -64,5 +64,5 @@ is_authorized(Req, State) ->
 -spec calendar_component(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 calendar_component(Req, State) ->
     Body = cowboy_req:method(Req),
-  {Body,Req,State}.
-  
+    {Body,Req,State}.
+
