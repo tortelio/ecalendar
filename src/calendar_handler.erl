@@ -25,8 +25,7 @@
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
     ReturnKey = ets:last(jozsical),
-    {ok, Return} = file:read_file("xml"),
-    %[{ReturnKey, Return} | _] = ets:lookup(jozsical, ReturnKey),
+    [{ReturnKey, Return} | _] = ets:lookup(jozsical, ReturnKey),
     Req = cowboy_req:reply(200, #{}, Return, Req0),
     {ok, Req, State};
 
