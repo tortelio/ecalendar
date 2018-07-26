@@ -78,8 +78,8 @@ calendar_component(Req, State) ->
     io:format("COMPON"),
     Method = cowboy_req:method(Req),
     ReturnBody = handle_request(Method, Req),
-    Req0 = {true, cowboy_req:reply(200, #{}, ReturnBody, Req)},
-    {"", Req0, State}.
+    Req0 = cowboy_req:reply(200, #{}, ReturnBody, Req),
+    {ok, Req0, State}.
 
 %%====================================================================
 %% Internal functions
