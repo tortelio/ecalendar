@@ -17,6 +17,7 @@
         content_types_accepted/2,
         content_types_provided/2,
         resource_exists/2,
+%        generate_etag/2,
         calendar_component/2
         ]).
 
@@ -31,15 +32,14 @@ init(Req,Opts)->
 
 %% @doc Set the allowed methods for this handler.
 allowed_methods(Req, State) ->
-    {[<<"GET">>, <<"PUT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>], Req, State}.
 
 %% @doc Set the known methods for this handler.
 known_methods(Req, State) ->
-    {[<<"GET">>, <<"PUT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"PROPFIND">>, <<"REPORT">>], Req, State}.
 
 resource_exists(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
-    io:format(Filename),
     IsExists = case ets:lookup(jozsical, Filename) of
                    [] -> false;
                    _ -> true
@@ -50,10 +50,13 @@ resource_exists(Req, State) ->
 %% @doc Media types accepted by the server.
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_accepted(Req,State)->
-    io:format("ACC\r\n"),
     {[
         {{<<"text">>, <<"calendar">>, '*'}, calendar_component}
      ],Req,State}.
+
+%generate_etag(Req, State) ->
+%    io:format("ETAG"),
+%    {<<"valami">>, Req, State}.
 
 %% @doc Media types provided by the server.
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
@@ -75,10 +78,9 @@ is_authorized(Req, State) ->
 %% @doc Send back a simple response based on the method of the request.
 -spec calendar_component(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 calendar_component(Req, State) ->
-    io:format("COMPON"),
     Method = cowboy_req:method(Req),
-    ReturnBody = handle_request(Method, Req),
-    Req0 = cowboy_req:reply(200, #{}, ReturnBody, Req),
+    {ReturnCode, ReturnBody} = handle_request(Method, Req),
+    Req0 = cowboy_req:reply(ReturnCode, #{}, ReturnBody, Req),
     {ok, Req0, State}.
 
 %%====================================================================
@@ -92,14 +94,12 @@ read_body(Req0, Acc) ->
     end.
 
 handle_request(<<"PUT">>, Req) ->
-    io:format("PUT"),
     Filename = cowboy_req:binding(component, Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ets:insert(jozsical, {Filename, Body2}),
-    <<"CREATED">>;
+    {201, <<"CREATED">>};
 
 handle_request(<<"GET">>, Req) ->
-    io:format("GET"),
     Filename = cowboy_req:binding(component, Req),
     [{Filename, ReturnValue} | _ ] = ets:lookup(jozsical, Filename),
-    ReturnValue.
+    {200, ReturnValue}.
