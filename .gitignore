@@ -5,7 +5,6 @@ _*
 *.beam
 *.plt
 *.swp
-*.xml
 *.swo
 .erlang.cookie
 ebin

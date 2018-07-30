@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<multistatus xmlns="DAV:" xmlns:CS="http://calendarserver.org/ns/" xmlns:cal="urn:ietf:params:xml:ns:caldav">
+    <response>
+        <href>jozsi/calendar/</href>
+        <propstat>
+            <prop>
+                <resourcetype>
+                    <collection />
+                    <cal:calendar />
+                </resourcetype>
+                <CS:getctag>"32cfb2aadb22ac20617e4be7c2d0a1ae"</CS:getctag>
+            </prop>
+            <status>HTTP/1.1 200 OK</status>
+        </propstat>
+    </response>
+</multistatus>
