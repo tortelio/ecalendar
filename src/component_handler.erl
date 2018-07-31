@@ -90,15 +90,14 @@ read_body(Req0, Acc) ->
 
 generate_etag(Path, Size, Mtime) ->
     {strong, integer_to_binary(erlang:phash2({Path, Size, Mtime}, 16#ffffffff))}.
-    
+
 handle_request(<<"PUT">>, Req) ->
-Uri = cowboy_req:uri(Req),
+    Uri = cowboy_req:uri(Req),
     Filename = cowboy_req:binding(component, Req),
     #{path := Path} = Req,
     Length = cowboy_req:parse_header(<<"content-length">>, Req),
     Last_mod_date = calendar:local_time(),
     {_ , Etag} = generate_etag(Path, Length, Last_mod_date),
-    io:format(Etag),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ets:insert(jozsical, {Filename, [Body2, Etag, Uri]}),
     {201, <<"CREATED">>};

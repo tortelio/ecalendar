@@ -24,29 +24,23 @@
 %% @doc Switch to REST handler behavior.
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-    %Body = get_ets_data(jozsical, ets:first(jozsical), <<"">>),
-    %{ok, Body} = file:read_file("src/resp.xml"),
-    {ok, IoBody, _} = read_body(Req0, <<"">>),
-    io:format(IoBody),
-    io:format("~n~n"),
     Ctag = concat_etags(jozsical),
-    Body = propfind_xml(Ctag),
+    {ok, IoBody, _} = read_body(Req0, <<"">>),
+    ReqBody = binary:split(IoBody, <<"getetag">>),
+    Body = case length(ReqBody) of
+               1 -> propfind_xml(Ctag);
+               _ -> ecalendar_xmlgen:create_propfind(jozsical, true)
+           end,
     Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0),
     {ok, Req, State};
     %%<<"DAV:">> =>  <<"1, 2, 3, calendar-access, addressbook, extended-mkcol">>
 
 init(Req0=#{method := <<"REPORT">>}, State) ->
-    Body = get_ets_data(jozsical),
-    {ok, Beg} = file:read_file("respbeg.xml"),
-    Fin = <<"</D:multistatus>">>,
-    %io:format(Body),
-    Retur = <<Beg/binary, Body/binary, Fin/binary>>,
+    Retur = ecalendar_xmlgen:create_report(jozsical),
     Req = cowboy_req:reply(207, #{}, Retur, Req0),
     {ok, Req, State};
 
 init(Req,Opts)->
-    Method = cowboy_req:method(Req),
-    io:format(Method),
     {cowboy_rest,Req,Opts}.
 
 %% NOTE: These callbacks seems useless so far, because PROPFIND requests are
@@ -62,7 +56,6 @@ known_methods(Req, State) ->
 %% @doc Media types accepted by the server.
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_accepted(Req,State)->
-    io:format("CONT"),
     {[
         {{<<"text">>, <<"xml">>, '*'}, propfind_calendar}
     ],Req,State}.
@@ -70,7 +63,6 @@ content_types_accepted(Req,State)->
 %% @doc Media types provided by the server.
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {{binary()}, cowboy_req:req(), any()}.
 content_types_provided(Req,State)->
-    io:format("CONT2"),
     {[
         {{<<"text">>, <<"xml">>, []}, propfind_calendar},
         {{<<"text">>, <<"calendar">>, []}, propfind_calendar}
@@ -89,38 +81,17 @@ is_authorized(Req, State) ->
 %% @doc Send back a simple response based on the method of the request.
 -spec propfind_calendar(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 propfind_calendar(Req, State) ->
-    %Body2 = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR">>,
-    %Req0 = {true, cowboy_req:reply(200, #{}, Body2, Req)},
-    Method = cowboy_req:method(Req),
-    io:format("PPPFFF"),
-    {ReturnCode, ReturnBody} = handle_request(Method, Req),
-    Req0 = cowboy_req:reply(ReturnCode, #{}, ReturnBody, Req),
-    {ok, Req0, State}.
+    %Method = cowboy_req:method(Req),
+    %{ReturnCode, ReturnBody} = handle_request(Method, Req),
+    %Req0 = cowboy_req:reply(ReturnCode, #{}, ReturnBody, Req),
+    {ok, Req, State}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-%% @doc a recursive function that concatenates all the element of an ets
-handle_request(<<"REPORT">>, Req) ->
-    [{jozsical, Return} | _] = ets:lookup(jozsical, <<"test.ics">>),
-    {207, Return}.
-
-%% @doc build an xml response from the ics stored in the ets
-get_ets_data(Cal) -> get_ets_data(Cal, ets:first(Cal), <<"">>).
-
-get_ets_data(Cal, Key, Acc) ->
-    {ok, Fin} = file:read_file("partend.xml"),
-    case Key of
-        '$end_of_table' ->
-            Acc;
-        _ ->
-            [{Key, [Return, Etag, Uri | _]} | _] = ets:lookup(Cal, Key),
-            Beg = get_xml(Etag, iolist_to_binary(Uri)),
-            get_ets_data(Cal, ets:next(Cal, Key), <<Acc/binary, Beg/binary, Return/binary, Fin/binary>>)
-    end.
-
-concat_etags(Cal) -> concat_etags(Cal, ets:first(Cal), <<"">>).
+concat_etags(Cal) ->
+    concat_etags(Cal, ets:first(Cal), <<"">>).
 
 concat_etags(Cal, Key, Acc) ->
 case Key of
