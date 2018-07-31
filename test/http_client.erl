@@ -3,6 +3,7 @@
 -export([connect/2,
          disconnect/1,
          get/3,
+         custom_request/5,
          put/4]).
 
 %%%=============================================================================
@@ -35,4 +36,21 @@ get(Conn, Path, Headers) ->
 put(Conn, Path, Header, Body) ->
     Ref = gun:put(Conn, Path, Header, Body),
     {response, _IsFin, Status, _Headers} = gun:await(Conn, Ref),
-    Status.
+    case Status of
+        Status when Status >= 400 ->
+            {Status, undefined};
+        _ ->
+            {ok, RespBody} = gun:await_body(Conn, Ref),
+            {Status, RespBody}
+    end.
+
+custom_request(Conn, Method, Path, Header, Body) ->
+    Ref = gun:request(Conn, Method, Path, Header, Body),
+    {response, _IsFin, Status, _Headers} = gun:await(Conn, Ref),
+    case Status of
+        Status when Status >= 400 ->
+            {Status, undefined};
+        _ ->
+            {ok, RespBody} = gun:await_body(Conn, Ref),
+            {Status, RespBody}
+    end.

@@ -99,6 +99,10 @@ handle_request(<<"PUT">>, Req) ->
     Last_mod_date = calendar:local_time(),
     {_ , Etag} = generate_etag(Path, Length, Last_mod_date),
     {ok, Body2, _} = read_body(Req, <<"">>),
+    %case ets:lookup(jozsical, Filename) of
+    %    [] -> ets:insert(jozsical, {Filename, [Body2, Etag, Uri]});
+    %    _ -> ets:update(jozsical, Filename, {1, [Body2, Etag, Uri]})
+    %end,
     ets:insert(jozsical, {Filename, [Body2, Etag, Uri]}),
     {201, <<"CREATED">>};
 

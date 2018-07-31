@@ -23,6 +23,9 @@
 
 %% @doc Switch to REST handler behavior.
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
+init(Req0=#{method := <<"GET">>}, State) ->
+    init(Req0#{method := <<"PROPFIND">>}, State);
+
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
     Ctag = concat_etags(jozsical),
     {ok, IoBody, _} = read_body(Req0, <<"">>),
