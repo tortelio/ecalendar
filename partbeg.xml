@@ -1,6 +1,0 @@
-<D:response>
-    <D:href>http://cal.example.com/bernard/work/abcd1.ics</D:href>
-    <D:propstat>
-        <D:prop>
-            <D:getetag>"fffff-abcd1"</D:getetag>
-            <C:calendar-data>
