@@ -17,7 +17,8 @@
         content_types_accepted/2,
         content_types_provided/2,
         resource_exists/2,
-        generate_etag/3,
+        delete_resource/2,
+        generate_etag/2,
         calendar_component/2
         ]).
 
@@ -27,16 +28,16 @@
 
 %% @doc Switch to REST handler behavior.
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest, cowboy_req:req(), any()}.
-init(Req,Opts)->
+init(Req,Opts) ->
     {cowboy_rest, Req, Opts}.
 
 %% @doc Set the allowed methods for this handler.
 allowed_methods(Req, State) ->
-    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"DELETE">>, <<"GET">>, <<"PUT">>], Req, State}.
 
 %% @doc Set the known methods for this handler.
 known_methods(Req, State) ->
-    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"PROPFIND">>, <<"REPORT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"DELETE">>, <<"GET">>, <<"PUT">>, <<"PROPFIND">>, <<"REPORT">>], Req, State}.
 
 resource_exists(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
@@ -78,31 +79,37 @@ calendar_component(Req, State) ->
     Req0 = cowboy_req:reply(ReturnCode, #{}, ReturnBody, Req),
     {ok, Req0, State}.
 
+delete_resource(Req, State) ->
+    Filename = cowboy_req:binding(component, Req),
+    ets:delete(jozsical, Filename),
+    {true, Req, State}.
+
+generate_etag(Req, State) ->
+    Filename = cowboy_req:binding(component, Req),
+    [{Filename, [Body, Etag, Uri | _]} | _] = ets:lookup(jozsical, Filename),
+    {Etag, Req, State}.
+
+generate_etag(Req) ->
+    #{path := Path} = Req,
+    Mtime = {{2018, 8, 01}, {12, 00, 00}},
+    Length = cowboy_req:parse_header(<<"content-length">>, Req),
+    integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)).
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
 read_body(Req0, Acc) ->
     case cowboy_req:read_body(Req0) of
-        {ok, Data, Req} -> {ok, << Acc/binary, Data/binary >>, Req};
-        {more, Data, Req} -> read_body(Req, << Acc/binary, Data/binary >>)
+        {ok, Data, Req} -> {ok, <<Acc/binary, Data/binary>>, Req};
+        {more, Data, Req} -> read_body(Req, <<Acc/binary, Data/binary>>)
     end.
-
-generate_etag(Path, Size, Mtime) ->
-    {strong, integer_to_binary(erlang:phash2({Path, Size, Mtime}, 16#ffffffff))}.
 
 handle_request(<<"PUT">>, Req) ->
     Uri = cowboy_req:uri(Req),
     Filename = cowboy_req:binding(component, Req),
-    #{path := Path} = Req,
-    Length = cowboy_req:parse_header(<<"content-length">>, Req),
-    Last_mod_date = calendar:local_time(),
-    {_ , Etag} = generate_etag(Path, Length, Last_mod_date),
+    Etag = generate_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
-    %case ets:lookup(jozsical, Filename) of
-    %    [] -> ets:insert(jozsical, {Filename, [Body2, Etag, Uri]});
-    %    _ -> ets:update(jozsical, Filename, {1, [Body2, Etag, Uri]})
-    %end,
     ets:insert(jozsical, {Filename, [Body2, Etag, Uri]}),
     {201, <<"CREATED">>};
 

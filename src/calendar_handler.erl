@@ -84,9 +84,6 @@ is_authorized(Req, State) ->
 %% @doc Send back a simple response based on the method of the request.
 -spec propfind_calendar(Req :: cowboy_req:req(), binary()) -> {{binary()}, cowboy_req:req(), any()}.
 propfind_calendar(Req, State) ->
-    %Method = cowboy_req:method(Req),
-    %{ReturnCode, ReturnBody} = handle_request(Method, Req),
-    %Req0 = cowboy_req:reply(ReturnCode, #{}, ReturnBody, Req),
     {ok, Req, State}.
 
 %%====================================================================
