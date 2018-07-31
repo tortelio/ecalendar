@@ -93,7 +93,8 @@ generate_etag(Req) ->
     #{path := Path} = Req,
     Mtime = {{2018, 8, 01}, {12, 00, 00}},
     Length = cowboy_req:parse_header(<<"content-length">>, Req),
-    integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)).
+    Result = integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)),
+    <<"\"", Result/binary, "\"">>.
 
 %%====================================================================
 %% Internal functions
