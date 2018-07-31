@@ -29,15 +29,15 @@ init(Req0=#{method := <<"PROPFIND">>}, State) ->
     ReqBody = binary:split(IoBody, <<"getetag">>),
     Body = case length(ReqBody) of
                1 -> propfind_xml(Ctag);
-               _ -> ecalendar_xmlgen:create_propfind(jozsical, true)
+               _ -> ecalendar_xmlgen:create_propfind(jozsical)
            end,
     Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0),
     {ok, Req, State};
     %%<<"DAV:">> =>  <<"1, 2, 3, calendar-access, addressbook, extended-mkcol">>
 
 init(Req0=#{method := <<"REPORT">>}, State) ->
-    Retur = ecalendar_xmlgen:create_report(jozsical),
-    Req = cowboy_req:reply(207, #{}, Retur, Req0),
+    Body = ecalendar_xmlgen:create_report(jozsical),
+    Req = cowboy_req:reply(207, #{}, Body, Req0),
     {ok, Req, State};
 
 init(Req,Opts)->
@@ -93,15 +93,13 @@ propfind_calendar(Req, State) ->
 concat_etags(Cal) ->
     concat_etags(Cal, ets:first(Cal), <<"">>).
 
+concat_etags(Cal, '$end_of_table', Acc) ->
+    base64:encode(Acc);
+
 concat_etags(Cal, Key, Acc) ->
-case Key of
-        '$end_of_table' ->
-            base64:encode(Acc);
-        _ ->
-            [{Key, CalendarList} | _] = ets:lookup(Cal, Key),
-            CurrentEtag = lists:nth(2, CalendarList),
-            concat_etags(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>)
-    end.
+    [{Key, CalendarList} | _] = ets:lookup(Cal, Key),
+    CurrentEtag = lists:nth(2, CalendarList),
+    concat_etags(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
 
 propfind_xml(Ctag) ->
 <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
