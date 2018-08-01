@@ -22,11 +22,11 @@
 %%====================================================================
 
 %% @doc Change the GET Request into a PROPFIND.
+-spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0=#{method := <<"GET">>}, State) ->
     init(Req0#{method := <<"PROPFIND">>}, State);
 
 %% @doc Handle a PROPFIND Request.
--spec init(Req :: cowboy_req:req(), State :: any()) -> {ok :: atom(), Req :: cowboy_req:req(), State :: any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
     Ctag = concat_etags(jozsical),
     {ok, IoBody, _} = read_body(Req0, <<"">>),
@@ -40,14 +40,12 @@ init(Req0=#{method := <<"PROPFIND">>}, State) ->
     %%<<"DAV:">> =>  <<"1, 2, 3, calendar-access, addressbook, extended-mkcol">>
 
 %% @doc Handle a REPORT Request.
--spec init(Req :: cowboy_req:req(), State :: any()) -> {ok :: atom(), Req :: cowboy_req:req(), State :: any()}.
 init(Req0=#{method := <<"REPORT">>}, State) ->
     Body = ecalendar_xmlgen:create_report(jozsical),
     Req = cowboy_req:reply(207, #{}, Body, Req0),
     {ok, Req, State};
 
 %% @doc Switch to REST handler behavior.
--spec init(Req :: cowboy_req:req(), Opts :: any()) -> {cowboy_rest :: atom(), Req :: cowboy_req:req(), Opts :: any()}.
 init(Req,Opts)->
     {cowboy_rest,Req,Opts}.
 
@@ -72,7 +70,7 @@ content_types_accepted(Req,State)->
     ],Req,State}.
 
 %% @doc Media types provided by the server.
--spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {[{{binary()}, atom()}], Req :: cowboy_req:req(), State :: any()}.
+-spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {[{{binary()}, atom()}], Req :: cowboy_req:req(), State :: any()}.
 content_types_provided(Req,State)->
     {[
         {{<<"text">>, <<"xml">>, []}, propfind_calendar},
@@ -90,7 +88,7 @@ is_authorized(Req, State) ->
     end.
 
 %% @doc Send back a simple response based on the method of the request.
--spec propfind_calendar(Req :: cowboy_req:req(), State :: any()) -> {ok :: atom(), Req :: cowboy_req:req(), State :: any()}.
+-spec propfind_calendar(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), State :: any()}.
 propfind_calendar(Req, State) ->
     {ok, Req, State}.
 
@@ -151,7 +149,7 @@ propfind_xml(Ctag) ->
 <D:status>HTTP/1.1 200 OK</D:status>\r\n</D:propstat>\r\n</D:response>\r\n</D:multistatus>">>.
 
 %% @doc Read the request body.
--spec read_body(Req0 :: cowboy_req:req(), Acc :: binary()) -> {ok :: atom(), binary(), Req :: cowboy_req:req()}.
+-spec read_body(Req0 :: cowboy_req:req(), Acc :: binary()) -> {atom(), binary(), Req :: cowboy_req:req()}.
 read_body(Req0, Acc) ->
     case cowboy_req:read_body(Req0) of
         {ok, Data, Req} -> {ok, << Acc/binary, Data/binary >>, Req};
