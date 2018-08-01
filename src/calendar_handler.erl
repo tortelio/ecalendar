@@ -21,11 +21,7 @@
 %% API
 %%====================================================================
 
-%% @doc Change the GET Request into a PROPFIND.
 -spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
-init(Req0=#{method := <<"GET">>}, State) ->
-    init(Req0#{method := <<"PROPFIND">>}, State);
-
 %% @doc Handle a PROPFIND Request.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
     Ctag = concat_etags(jozsical),
