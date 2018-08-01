@@ -21,10 +21,10 @@
 %% API
 %%====================================================================
 
--spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 %% @doc Handle a PROPFIND Request.
+-spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-    Ctag = concat_etags(jozsical),
+    Ctag = create_ctag(jozsical),
     {ok, IoBody, _} = read_body(Req0, <<"">>),
     ReqBody = binary:split(IoBody, <<"getetag">>),
     Body = case length(ReqBody) of
@@ -56,7 +56,7 @@ allowed_methods(Req, State) ->
 %% @doc Set the known http methods for this handler.
 -spec known_methods(Req :: cowboy_req:req(), State :: any()) -> {[binary()], Req :: cowboy_req:req(), State :: any()}.
 known_methods(Req, State) ->
-    {[<<"OPTIONS">>, <<"GET">>, <<"PUT">>, <<"PROPFIND">>, <<"REPORT">>], Req, State}.
+    {[<<"OPTIONS">>, <<"DELETE">>, <<"GET">>, <<"PUT">>, <<"PROPFIND">>, <<"REPORT">>], Req, State}.
 
 %% @doc Media types accepted by the server.
 -spec content_types_accepted(Req :: cowboy_req:req(), State :: any()) -> {[{{binary()}, atom()}], Req :: cowboy_req:req(), State :: any()}.
@@ -69,8 +69,7 @@ content_types_accepted(Req,State)->
 -spec content_types_provided(Req :: cowboy_req:req(), State :: any()) -> {[{{binary()}, atom()}], Req :: cowboy_req:req(), State :: any()}.
 content_types_provided(Req,State)->
     {[
-        {{<<"text">>, <<"xml">>, []}, propfind_calendar},
-        {{<<"text">>, <<"calendar">>, []}, propfind_calendar}
+        {{<<"text">>, <<"xml">>, []}, propfind_calendar}
     ],Req,State}.
 
 %% @doc Check the authorization of the request.
@@ -92,17 +91,17 @@ propfind_calendar(Req, State) ->
 %% Internal functions
 %%====================================================================
 
-%% @doc Concatenate all of the etags from the ets.
-concat_etags(Cal) ->
-    concat_etags(Cal, ets:first(Cal), <<"">>).
+%% @doc Concatenate all of the etags from the ets and then creates the Ctag for the calendar
+create_ctag(Cal) ->
+    create_ctag(Cal, ets:first(Cal), <<"">>).
 
-concat_etags(Cal, '$end_of_table', Acc) ->
+create_ctag(_, '$end_of_table', Acc) ->
     base64:encode(Acc);
 
-concat_etags(Cal, Key, Acc) ->
+create_ctag(Cal, Key, Acc) ->
     [{Key, CalendarList} | _] = ets:lookup(Cal, Key),
     CurrentEtag = lists:nth(2, CalendarList),
-    concat_etags(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
+    create_ctag(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
 
 %% @doc The Response body for a PROPFIND Request in xml form.
 -spec propfind_xml(Ctag :: binary()) -> binary().

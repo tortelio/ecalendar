@@ -93,22 +93,23 @@ delete_resource(Req, State) ->
 %% @doc Generate etag for a DELETE request.
 -spec generate_etag(Req :: cowboy_req:req(), any()) -> {Etag :: binary(), cowboy_req:req(), any()}.
 generate_etag(Req, State) ->
-    Filename = cowboy_req:binding(component, Req),
-    [{Filename, [Body, Etag, Uri | _]} | _] = ets:lookup(jozsical, Filename),
+    Key = cowboy_req:binding(component, Req),
+    [{Key, CalendarList} | _] = ets:lookup(jozsical, Key),
+    Etag = lists:nth(2, CalendarList),
     {Etag, Req, State}.
 
+%%====================================================================
+%% Internal functions
+%%====================================================================
+
 %% @doc Generate etag for a PUT request.
--spec generate_etag(Req :: cowboy_req:req()) -> binary().
-generate_etag(Req) ->
+-spec create_etag(Req :: cowboy_req:req()) -> binary().
+create_etag(Req) ->
     #{path := Path} = Req,
     Mtime = {{2018, 8, 01}, {12, 00, 00}},
     Length = cowboy_req:parse_header(<<"content-length">>, Req),
     Result = integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)),
     <<"\"", Result/binary, "\"">>.
-
-%%====================================================================
-%% Internal functions
-%%====================================================================
 
 %% @doc Recursive function to get the whole Request body.
 -spec read_body(Req0 :: cowboy_req:req(), Acc :: binary()) -> {atom(), binary(), Req :: cowboy_req:req()}.
@@ -117,13 +118,13 @@ read_body(Req0, Acc) ->
         {ok, Data, Req} -> {ok, <<Acc/binary, Data/binary>>, Req};
         {more, Data, Req} -> read_body(Req, <<Acc/binary, Data/binary>>)
     end.
-    
+
 %% @doc This functon is called for a PUT Request.
 -spec handle_request(binary(), Req :: cowboy_req:req()) -> {non_neg_integer(), binary()}.
 handle_request(<<"PUT">>, Req) ->
     Uri = cowboy_req:uri(Req),
     Filename = cowboy_req:binding(component, Req),
-    Etag = generate_etag(Req),
+    Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ets:insert(jozsical, {Filename, [Body2, Etag, Uri]}),
     {201, <<"CREATED">>};
