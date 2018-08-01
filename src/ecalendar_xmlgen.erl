@@ -17,12 +17,15 @@
 %% API
 %%====================================================================
 
-%% @doc build an xml report from the ics stored in the ets
+%% @doc Build an xml REPORT response.
+-spec read_body(Cal :: atom()) -> binary().
 create_report(Cal) ->
     ResponseBegin = get_xml_header(<<"multistatus">>),
     ResponseBody = create_report_body(Cal, ets:first(Cal), ResponseBegin),
     <<ResponseBody/binary, "\r\n</d:multistatus>">>.
 
+%% @doc Create an xml PROPFIND response.
+-spec read_body(Cal :: atom()) -> binary().
 create_propfind(Cal) ->
     ResponseBegin = get_xml_header(<<"multistatus">>),
     ResponseBody = get_prop_body(Cal),
@@ -32,15 +35,21 @@ create_propfind(Cal) ->
 %% Internal functions
 %%====================================================================
 
+%% @doc The beginning of the response xml.
+-spec read_body(State :: any()) -> binary().
 get_xml_header(State) ->
     <<"<?xml version=\"1.0\" encoding=\"utf-8\" ?><d:", State/binary, " xmlns:d=\"DAV:\"
     xmlns:CS=\"http://calendarserver.org/ns/\"
     xmlns:C=\"urn:ietf:params:xml:ns:caldav\">\r\n">>.
 
+%% @doc The beginning of an ics response in the REPORT xml.
+-spec read_body(Etag :: atom(), Eri :: atom()) -> binary().
 get_report_header(Etag, Uri) ->
     <<"\r\n<d:response>\r\n<d:href>", Uri/binary , "</d:href>\r\n<d:propstat>\r\n<d:prop><d:getetag>", Etag/binary, "</d:getetag>
       <C:calendar-data>">>.
 
+%% @doc Build a response xml from all the ics in the ets.
+-spec read_body(Cal :: atom(), Key :: atom(), Acc :: binary()) -> binary().
 create_report_body(Cal, Key, Acc) ->
     PartFin = <<"</C:calendar-data></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>">>,
     case Key of
@@ -52,6 +61,8 @@ create_report_body(Cal, Key, Acc) ->
             create_report_body(Cal, ets:next(Cal, Key), <<Acc/binary, Header/binary, Return/binary, PartFin/binary>>)
     end.
 
+%% @doc Build an xml response body for a PROPFIND request.
+-spec read_body(Cal :: atom()) -> binary().
 get_prop_body(Cal) ->
     Body1 = <<"<d:response><d:href>http://localhost:8080/jozsi/calendar</d:href><d:propstat><d:prop><d:getcontenttype>
     httpd/unix-directory</d:getcontenttype><d:resourcetype><d:collection /><C:calendar/></d:resourcetype></d:prop>
@@ -60,6 +71,7 @@ get_prop_body(Cal) ->
     Body2 = get_user_details(Cal, Body1),
     <<Body2/binary, "</d:multistatus>">>.
 
+%% @doc Recursive function that builds the end of the PROPFIND reponse xml from the ets
 get_user_details(Cal, Acc) ->
     get_user_details(Cal, ets:first(Cal), Acc).
 
