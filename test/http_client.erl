@@ -3,6 +3,7 @@
 -export([connect/2,
          disconnect/1,
          get/3,
+         delete/3,
          custom_request/5,
          put/4]).
 
@@ -43,6 +44,11 @@ put(Conn, Path, Header, Body) ->
             {ok, RespBody} = gun:await_body(Conn, Ref),
             {Status, RespBody}
     end.
+
+delete(Conn, Path, Header) ->
+    Ref = gun:delete(Conn, Path, Header),
+    {response, _IsFin, Status, _Headers} = gun:await(Conn, Ref),
+    Status.
 
 custom_request(Conn, Method, Path, Header, Body) ->
     Ref = gun:request(Conn, Method, Path, Header, Body),

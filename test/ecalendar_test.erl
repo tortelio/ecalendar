@@ -4,8 +4,10 @@
          teardown_http_connection/1,
          is_xml_response/1,
          get_test_putbody/0,
-         content_type_headers/3,
+         custom_headers/3,
+         get_etag_of_event/2,
          get_report_request/1,
+         is_event_in_database/2,
          get_http_connection/1]).
 
 -export([authorization_headers/2]).
@@ -24,9 +26,9 @@ teardown_http_connection(Config) ->
 get_http_connection(Config) ->
     proplists:get_value(http_conn, Config).
 
-content_type_headers(Username, Password, ContentTypes) ->
+custom_headers(Username, Password, InputHeaders) ->
     AuthHeader = authorization_headers(Username, Password),
-    lists:merge(ContentTypes, AuthHeader).
+    lists:merge(InputHeaders, AuthHeader).
 
 authorization_headers(Username, Password) ->
     EncodedCredentials = base64:encode(<<Username/binary, ":", Password/binary>>),
@@ -43,3 +45,15 @@ get_report_request(Filename) ->
     <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <C:calendar-multiget xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:prop><D:getetag/><C:calendar-data/>
     </D:prop><D:href>/jozsi/calendar/", Filename/binary, "</D:href></C:calendar-multiget>">>.
+
+get_etag_of_event(Cal, EventName) ->
+    case ets:lookup(Cal, EventName) of
+        [{EventName, [_, Etag, _ | _]}] -> Etag;
+        _ -> error
+    end.
+
+is_event_in_database(Cal,EventName) ->
+    case ets:lookup(Cal, EventName) of
+        [] -> false;
+        _ -> true
+    end.

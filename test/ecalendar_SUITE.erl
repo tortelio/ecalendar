@@ -7,7 +7,9 @@ all() -> [get_calendar,
           %get_calendar_with_unauthorized_user,
           add_event,
           get_report_of_event,
-          add_event_with_unauthorized_user
+          add_event_with_unauthorized_user,
+          delete_event,
+          update_event
          ].
 
 %%------------------------------------------------------------------------------
@@ -47,7 +49,7 @@ get_calendar(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
     Headers = ecalendar_test:authorization_headers(<<"jozsi">>, <<"password">>),
-    {Code, Reply} = http_client:get(ConnPid, "/jozsi/calendar/", Headers),
+    {Code, Reply} = http_client:custom_request(ConnPid, <<"PROPFIND">>, "/user-1/calendar", Headers, <<"">>),
 
     CheckXML = ecalendar_test:is_xml_response(Reply),
     %% write assertions about calendar content
@@ -60,7 +62,7 @@ get_calendar_with_unauthorized_user(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
     Headers = ecalendar_test:authorization_headers(<<"user-1">>, <<"bad-password-1">>),
-    Reply = http_client:get(ConnPid, "/user-1/calendar", Headers),
+    Reply = http_client:custom_request(ConnPid, <<"PROPFIND">>, "/user-1/calendar", Headers, <<"">>),
 
     ?assertEqual({401, undefined}, Reply),
 
@@ -70,18 +72,21 @@ get_calendar_with_unauthorized_user(Config) ->
 add_event(_Config) ->
     ConnPid = ecalendar_test:get_http_connection(_Config),
 
-    Headers = ecalendar_test:content_type_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
     TestBody = ecalendar_test:get_test_putbody(),
     Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
+    EventExists = ecalendar_test:is_event_in_database(jozsical, <<"valami.ics">>),
+
+    ?assertEqual(true, EventExists),
     ok.
 
 add_event_with_unauthorized_user(_Config) ->
     ConnPid = ecalendar_test:get_http_connection(_Config),
 
-    Headers = ecalendar_test:content_type_headers(<<"jozsi">>, <<"password-1">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password-1">>, [{<<"content-type">>, <<"text/calendar">>}]),
     TestBody = ecalendar_test:get_test_putbody(),
     Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
 
@@ -92,17 +97,53 @@ add_event_with_unauthorized_user(_Config) ->
 get_report_of_event(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
-    Headers = ecalendar_test:content_type_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
     TestBody = ecalendar_test:get_test_putbody(),
     Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    ReportHeader = ecalendar_test:content_type_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/xml">>}]),
+    ReportHeader = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/xml">>}]),
     ReportBody = ecalendar_test:get_report_request(<<"valami.ics">>),
     {Code, Reply2} = http_client:custom_request(ConnPid, <<"REPORT">>, "/jozsi/calendar", ReportHeader, ReportBody),
 
-    %CheckXML = ecalendar_test:is_xml_response(Reply2),
     ?assertEqual(207, Code),
+
+    ok.
+
+delete_event(_Config) ->
+    ConnPid = ecalendar_test:get_http_connection(_Config),
+
+    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    TestBody = ecalendar_test:get_test_putbody(),
+    Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
+
+    ?assertEqual({201, <<"CREATED">>}, Reply),
+
+    Etag = ecalendar_test:get_etag_of_event(jozsical, <<"valami.ics">>),
+    DeleteHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag}]),
+    Reply2 = http_client:delete(ConnPid, "/jozsi/calendar/valami.ics", DeleteHeaders),
+
+    EventExists = ecalendar_test:is_event_in_database(jozsical, <<"valami.ics">>),
+    ?assertEqual({204, false}, {Reply2, EventExists}),
+
+    ok.
+
+update_event(_Config) ->
+    ConnPid = ecalendar_test:get_http_connection(_Config),
+
+    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    TestBody = ecalendar_test:get_test_putbody(),
+    Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
+
+    ?assertEqual({201, <<"CREATED">>}, Reply),
+
+    NewBody = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:UPDATEDICSBODY\r\nEND:VCALENDAR">>,
+    Etag = ecalendar_test:get_etag_of_event(jozsical, <<"valami.ics">>),
+    NewHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag},
+                                                                             {<<"content-type">>, <<"text/calendar">>}]),
+    Reply2 = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", NewHeaders, NewBody),
+
+    ?assertEqual({201, <<"CREATED">>}, Reply2),
 
     ok.
