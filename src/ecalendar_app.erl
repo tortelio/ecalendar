@@ -20,7 +20,7 @@
 %% @doc Start the server. Call the appropriate handler.
 start(_StartType, _StartArgs) ->
     Dispatch = cowboy_router:compile([
-                                      {'_', [
+                                      {'_', [{"/sign-up", sign_up_handler, []},
                                              {"/:username/calendar", calendar_handler,[]},
                                              {"/:username/calendar/:component", component_handler,[]}
                                             ]}]),

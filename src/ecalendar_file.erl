@@ -49,6 +49,7 @@ file:delete(<<"data/", Username/binary, "/", Filename/binary>>),
     io:format("EVENT DELETED~n").
 
 load_ets_data() ->
+filelib:ensure_dir("data/"),
 io:format("LOADING SAVED DATA~n"),
 {ok, UsersDirs} = file:list_dir("data/"),
 lists:foreach(fun(Dirname1) ->

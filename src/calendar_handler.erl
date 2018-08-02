@@ -25,6 +25,9 @@
 -spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
 Username = cowboy_req:binding(username, Req0),
+IsUser = filelib:is_dir(<<"data/", Username/binary>>),
+case IsUser of 
+true ->
     Ctag = create_ctag(binary_to_atom(Username, utf8)),
     {ok, IoBody, _} = read_body(Req0, <<"">>),
     ReqBody = binary:split(IoBody, <<"getetag">>),
@@ -32,9 +35,12 @@ Username = cowboy_req:binding(username, Req0),
                1 -> propfind_xml(Ctag, (Username));
                _ -> ecalendar_xmlgen:create_propfind(Username)
            end,
-    Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0),
+    Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0);
+    false = IsUser ->
+    Body = <<"NOT REGISTERED USER">>,
+    Req = cowboy_req:reply(412, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0)
+    end,
     {ok, Req, State};
-    %%<<"DAV:">> =>  <<"1, 2, 3, calendar-access, addressbook, extended-mkcol">>
 
 %% @doc Handle a REPORT Request.
 init(Req0=#{method := <<"REPORT">>}, State) ->
