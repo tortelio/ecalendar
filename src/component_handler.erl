@@ -45,7 +45,7 @@ known_methods(Req, State) ->
 -spec resource_exists(Req :: cowboy_req:req(), State :: any()) -> {IsExists :: atom(), Req :: cowboy_req:req(), State :: any()}.
 resource_exists(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
-    IsExists = case ets:lookup(jozsical, Filename) of
+    IsExists = case ets:lookup(binary_to_atom(cowboy_req:binding(username, Req), utf8), Filename) of
                    [] -> false;
                    _ -> true
                end,
@@ -87,14 +87,15 @@ calendar_component(Req, State) ->
 -spec delete_resource(Req :: cowboy_req:req(), any()) -> {atom(), cowboy_req:req(), any()}.
 delete_resource(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
-    ets:delete(jozsical, Filename),
+    ets:delete(binary_to_atom(cowboy_req:binding(username, Req), utf8), Filename),
+    ecalendar_file:delete_file(cowboy_req:binding(username, Req),Filename),
     {true, Req, State}.
 
 %% @doc Generate etag for a DELETE request.
 -spec generate_etag(Req :: cowboy_req:req(), any()) -> {Etag :: binary(), cowboy_req:req(), any()}.
 generate_etag(Req, State) ->
     Key = cowboy_req:binding(component, Req),
-    [{Key, CalendarList} | _] = ets:lookup(jozsical, Key),
+    [{Key, CalendarList} | _] = ets:lookup(binary_to_atom(cowboy_req:binding(username, Req), utf8), Key),
     Etag = lists:nth(2, CalendarList),
     {Etag, Req, State}.
 
@@ -126,12 +127,13 @@ handle_request(<<"PUT">>, Req) ->
     Filename = cowboy_req:binding(component, Req),
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
-    ets:insert(jozsical, {Filename, [Body2, Etag, Uri]}),
+    ets:insert(binary_to_atom(cowboy_req:binding(username, Req), utf8), {Filename, [Body2, Etag, Uri]}),
+    ecalendar_file:write_to_file(cowboy_req:binding(username, Req), Filename),
     {201, <<"CREATED">>};
 
 %% @doc This functon is called for a GET Request.
 handle_request(<<"GET">>, Req) ->
     Filename = cowboy_req:binding(component, Req),
-    [{Filename, Got_data} | _ ] = ets:lookup(jozsical, Filename),
+    [{Filename, Got_data} | _ ] = ets:lookup(binary_to_atom(cowboy_req:binding(username, Req), utf8), Filename),
     [ReturnValue | _] = Got_data,
     {200, ReturnValue}.

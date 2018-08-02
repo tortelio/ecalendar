@@ -64,7 +64,7 @@ create_report_body(Cal, Key, Acc) ->
 %% @doc Build an xml response body for a PROPFIND request.
 -spec get_prop_body(Cal :: atom()) -> binary().
 get_prop_body(Cal) ->
-    Body1 = <<"<d:response><d:href>http://localhost:8080/jozsi/calendar</d:href><d:propstat><d:prop><d:getcontenttype>
+    Body1 = <<"<d:response><d:href>http://localhost:8080/", Cal/binary, "/calendar</d:href><d:propstat><d:prop><d:getcontenttype>
     httpd/unix-directory</d:getcontenttype><d:resourcetype><d:collection /><C:calendar/></d:resourcetype></d:prop>
     <d:status>HTTP/1.1 200 OK</d:status></d:propstat><d:propstat><d:prop><d:getetag /></d:prop>
     <d:status>HTTP/1.1 404 Not Found</d:status></d:propstat></d:response>">>,
@@ -73,17 +73,17 @@ get_prop_body(Cal) ->
 
 %% @doc Recursive function that builds the end of the PROPFIND reponse xml from the ets
 get_user_details(Cal, Acc) ->
-    get_user_details(Cal, ets:first(Cal), Acc).
+    get_user_details(Cal, ets:first(binary_to_atom(Cal, utf8)), Acc).
 
 get_user_details(Cal, Key, Acc) ->
     case Key of
         '$end_of_table' ->
             Acc;
         _ ->
-            Start = <<"<d:response><d:href>http://localhost:8080/jozsi/calendar/", Key/binary,
+            Start = <<"<d:response><d:href>http://localhost:8080/", Cal/binary, "/calendar/", Key/binary,
             "</d:href><d:propstat><d:prop><d:getcontenttype>text/calendar; charset=utf-8; component=vevent
             </d:getcontenttype><d:getetag>">>,
-            [{Key, [Return, Etag, Uri | _]} | _] = ets:lookup(Cal, Key),
+            [{Key, [Return, Etag, Uri | _]} | _] = ets:lookup(binary_to_atom(Cal, utf8), Key),
             BodyRest = <<Etag/binary, "</d:getetag></d:prop><d:status>HTTP/1.1 200 OK</d:status></d:propstat></d:response>">>,
-            get_user_details(Cal, ets:next(Cal, Key), <<Acc/binary, Start/binary, BodyRest/binary>>)
+            get_user_details(Cal, ets:next(binary_to_atom(Cal, utf8), Key), <<Acc/binary, Start/binary, BodyRest/binary>>)
     end.

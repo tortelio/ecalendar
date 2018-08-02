@@ -29,7 +29,7 @@ start(_StartType, _StartArgs) ->
         [{port, 8080}],
         #{env => #{dispatch => Dispatch}}
     ),
-    ets:new(jozsical, [set, named_table, public]),
+    ecalendar_file:load_ets_data(),
     ecalendar_sup:start_link().
 
 %%--------------------------------------------------------------------

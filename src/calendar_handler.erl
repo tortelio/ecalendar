@@ -24,12 +24,13 @@
 %% @doc Handle a PROPFIND Request.
 -spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-    Ctag = create_ctag(jozsical),
+Username = cowboy_req:binding(username, Req0),
+    Ctag = create_ctag(binary_to_atom(Username, utf8)),
     {ok, IoBody, _} = read_body(Req0, <<"">>),
     ReqBody = binary:split(IoBody, <<"getetag">>),
     Body = case length(ReqBody) of
-               1 -> propfind_xml(Ctag);
-               _ -> ecalendar_xmlgen:create_propfind(jozsical)
+               1 -> propfind_xml(Ctag, (Username));
+               _ -> ecalendar_xmlgen:create_propfind(Username)
            end,
     Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0),
     {ok, Req, State};
@@ -37,7 +38,7 @@ init(Req0=#{method := <<"PROPFIND">>}, State) ->
 
 %% @doc Handle a REPORT Request.
 init(Req0=#{method := <<"REPORT">>}, State) ->
-    Body = ecalendar_xmlgen:create_report(jozsical),
+    Body = ecalendar_xmlgen:create_report(binary_to_atom(cowboy_req:binding(username, Req0), utf8)),
     Req = cowboy_req:reply(207, #{}, Body, Req0),
     {ok, Req, State};
 
@@ -104,20 +105,20 @@ create_ctag(Cal, Key, Acc) ->
     create_ctag(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
 
 %% @doc The Response body for a PROPFIND Request in xml form.
--spec propfind_xml(Ctag :: binary()) -> binary().
-propfind_xml(Ctag) ->
+-spec propfind_xml(Ctag :: binary(), Username :: binary()) -> binary().
+propfind_xml(Ctag,Username) ->
 <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <D:multistatus xmlns:D=\"DAV:\" xmlns:CS=\"http://calendarserver.org/ns/\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\">
 <D:response>
-<D:href>jozsi/calendar/</D:href>
+<D:href>", Username/binary, "/calendar/</D:href>
 <D:propstat>\r\n<D:prop>\r\n<D:resourcetype>\r\n<D:collection />\r\n<C:calendar />
 </D:resourcetype>
 <D:owner>
-<D:href>http://localhost:8080/jozsi/calendar/
+<D:href>http://localhost:8080/", Username/binary, "/calendar/
 </D:href>
 </D:owner>
 <D:current-user-principal>
-<D:href>http://localhost:8080/jozsi/calendar/
+<D:href>http://localhost:8080/", Username/binary, "/calendar/
 </D:href>
 </D:current-user-principal>
 <D:supported-report-set>
