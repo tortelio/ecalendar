@@ -39,11 +39,15 @@ end.
 delete(Username) ->
 case exists(Username) of
 true ->
-%% TODO: make os free deletion of a not empty dir.
-DirPath = binary_to_list(<<"data/", Username/binary>>),
-os:cmd("rm -Rf " ++ DirPath),
-%del_dir(<<"data/", Username/binary>>),
-%------------------------------------------------
+io:format("Deleting user~n"),
+{ok, Filenames} = file:list_dir(<<"data/", Username/binary, "/">>),
+lists:foreach(fun(Filename1) ->
+io:format("...~n"),
+Filename2 = binary:list_to_bin(Filename1),
+file:delete(<<"data/", Username/binary, "/", Filename2/binary>>)
+end, Filenames),
+file:del_dir(<<"data/", Username/binary>>),
+
 ets:delete(binary_to_atom(Username, utf8)),
 io:format(<<Username/binary, "  user deleted~n">>),
 {ok, <<Username/binary, "  deleted">>};
@@ -52,32 +56,7 @@ io:format(<<Username/binary, "  user does not exist~n">>),
 {error, <<Username/binary, "  does not exist">>}
 end.
 
-
-
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
-%% UNUSED/NOT WORKING
-del_dir(Dir) ->
-   lists:foreach(fun(D) ->
-                    ok = file:del_dir(D)
-                 end, del_all_files([Dir], [])).
-
-del_all_files([], EmptyDirs) ->
-   EmptyDirs;
-del_all_files([Dir | T], EmptyDirs) ->
-   {ok, FilesInDir} = file:list_dir(Dir),
-   {Files, Dirs} = lists:foldl(fun(F, {Fs, Ds}) ->
-                                  Path = <<Dir/binary, "/", F/binary>>,
-                                  case filelib:is_dir(Path) of
-                                     true ->
-                                          {Fs, [Path | Ds]};
-                                     false ->
-                                          {[Path | Fs], Ds}
-                                  end
-                               end, {[],[]}, FilesInDir),
-   lists:foreach(fun(F) ->
-                         ok = file:delete(F)
-                 end, Files),
-   del_all_files(T ++ Dirs, [Dir | EmptyDirs]).
