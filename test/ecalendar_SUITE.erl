@@ -9,7 +9,11 @@ all() -> [get_calendar,
           get_report_of_event,
           add_event_with_unauthorized_user,
           delete_event,
-          update_event
+          update_event,
+          create_new_user,
+          create_existing_user,
+          delete_not_existing_user,
+          delete_existing_user
          ].
 
 %%------------------------------------------------------------------------------
@@ -32,11 +36,13 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
+ecalendar_user:create(<<"jozsi">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
 
 end_per_testcase(_, Config1) ->
+ecalendar_user:delete(<<"jozsi">>),
     _Config2 = ecalendar_test:teardown_http_connection(Config1),
 
     ok.
@@ -45,10 +51,47 @@ end_per_testcase(_, Config1) ->
 %% TESTCASES
 %%------------------------------------------------------------------------------
 
+%% @doc Create a not existing user.
+create_new_user(Config) ->
+?assertEqual(false, ecalendar_user:exists(<<"hermina">>)),
+{ok, _} = ecalendar_user:create(<<"hermina">>),
+?assertEqual(true, ecalendar_user:exists(<<"hermina">>)),
+
+ok.
+
+%% @doc Create an existing user.
+create_existing_user(Config) ->
+?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
+{error, _} = ecalendar_user:create(<<"jozsi">>),
+
+ok.
+
+%% @doc Delete a not existing user.
+delete_not_existing_user(Config) ->
+?assertEqual(false, ecalendar_user:exists(<<"bela">>)),
+{error, _} = ecalendar_user:delete(<<"bela">>),
+
+ok.
+
+%% @doc Delete an existing user.
+delete_existing_user(Config) ->
+{ok, _} = ecalendar_user:create(<<"flora">>),
+?assertEqual(true, ecalendar_user:exists(<<"flora">>)),
+
+%ecalendar_file:write_to_file(flora, Filename),
+{ok, OpenedFile} = file:open(<<"data/flora/event.ics">>, [write, binary]),
+    file:write(OpenedFile, <<"Fora's event.">>),
+    file:close(OpenedFile),
+
+{ok, _} = ecalendar_user:delete(<<"flora">>),
+?assertEqual(false, ecalendar_user:exists(<<"flora">>)),
+?assertEqual(undefined, ets:info(flora)),
+
+ok.
+
 %% @doc User sends a request with proper credentials to the server and get own calendar
 get_calendar(Config) ->
-    ConnPid = ecalendar_test:get_http_connection(Config),
-
+    ConnPid = ecalendar_test:get_http_connection(Config),    
     Headers = ecalendar_test:authorization_headers(<<"jozsi">>, <<"password">>),
     {Code, Reply} = http_client:custom_request(ConnPid, <<"PROPFIND">>, "/jozsi/calendar", Headers, <<"">>),
     CheckXML = ecalendar_test:is_xml_response(Reply),
