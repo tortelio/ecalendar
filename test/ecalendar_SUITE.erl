@@ -17,6 +17,7 @@ all() -> [get_calendar,
 %%------------------------------------------------------------------------------
 
 init_per_suite(Config) ->
+filelib:ensure_dir("data/jozsi/"),
     {ok, _} = application:ensure_all_started(ecalendar),
     {ok, _} = application:ensure_all_started(gun),
     Config.
@@ -49,8 +50,7 @@ get_calendar(Config) ->
     ConnPid = ecalendar_test:get_http_connection(Config),
 
     Headers = ecalendar_test:authorization_headers(<<"jozsi">>, <<"password">>),
-    {Code, Reply} = http_client:custom_request(ConnPid, <<"PROPFIND">>, "/user-1/calendar", Headers, <<"">>),
-
+    {Code, Reply} = http_client:custom_request(ConnPid, <<"PROPFIND">>, "/jozsi/calendar", Headers, <<"">>),
     CheckXML = ecalendar_test:is_xml_response(Reply),
     %% write assertions about calendar content
     ?assertEqual({207, true}, {Code, CheckXML}),
@@ -78,7 +78,7 @@ add_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    EventExists = ecalendar_test:is_event_in_database(jozsical, <<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(jozsi, <<"valami.ics">>),
 
     ?assertEqual(true, EventExists),
     ok.
@@ -120,11 +120,11 @@ delete_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    Etag = ecalendar_test:get_etag_of_event(jozsical, <<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(jozsi, <<"valami.ics">>),
     DeleteHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag}]),
     Reply2 = http_client:delete(ConnPid, "/jozsi/calendar/valami.ics", DeleteHeaders),
 
-    EventExists = ecalendar_test:is_event_in_database(jozsical, <<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(jozsi, <<"valami.ics">>),
     ?assertEqual({204, false}, {Reply2, EventExists}),
 
     ok.
@@ -139,7 +139,7 @@ update_event(_Config) ->
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
     NewBody = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:UPDATEDICSBODY\r\nEND:VCALENDAR">>,
-    Etag = ecalendar_test:get_etag_of_event(jozsical, <<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(jozsi, <<"valami.ics">>),
     NewHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag},
                                                                              {<<"content-type">>, <<"text/calendar">>}]),
     Reply2 = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", NewHeaders, NewBody),

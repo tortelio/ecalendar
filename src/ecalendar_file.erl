@@ -17,18 +17,13 @@ load_ets_data/0]).
 %%====================================================================
 %% API
 %%====================================================================
+
+%% @doc Save the ets into a file.
 save_ets_data(Cal) ->
     io:format("SAVING DATA~n"),
 save_ets_data(Cal, ets:first(Cal)).
 
-save_ets_data(_, '$end_of_table') ->
-    io:format("END OF CALENDAR~n");
-    
-save_ets_data(Cal, Key) ->
-    io:format("...~n"),
-write_to_file(Cal, Key),
-    save_ets_data(Cal, ets:next(Cal, Key)).
-    
+%% @doc Write the calendar component into an ics file.
 write_to_file(Cal, Key) ->
     io:format("SAVING EVENT TO FILE~n"),
 {ok, OpenedFile} = file:open(<<"data/", Cal/binary, "/", Key/binary>>, [write, binary]),
@@ -39,6 +34,7 @@ write_to_file(Cal, Key) ->
     file:close(OpenedFile),
     io:format("EVENT SAVED~n").
     
+%% @doc Delete the specified calendar component file.
 delete_file(Username, Filename) ->
     io:format("DELETING EVENT FILE~n"),
     io:format(Username),
@@ -48,14 +44,18 @@ delete_file(Username, Filename) ->
 file:delete(<<"data/", Username/binary, "/", Filename/binary>>),
     io:format("EVENT DELETED~n").
 
+%% @doc load the stored data into one or more ets depending on the number of users.
 load_ets_data() ->
 filelib:ensure_dir("data/"),
-io:format("LOADING SAVED DATA~n"),
+io:format("~nLOADING SAVED DATA~n"),
 {ok, UsersDirs} = file:list_dir("data/"),
+io:format("All the users: "),
+io:format(UsersDirs),
+io:format("~n"),
 lists:foreach(fun(Dirname1) ->
 Dirname2 = binary:list_to_bin(Dirname1),
 Dirname = binary_to_atom(Dirname2, utf8),
-io:format("Creating new calendar~n"),
+io:format(<<"Creating ", Dirname2/binary, "'s calendar~n">>),
 ets:new(Dirname, [set, named_table, public]),
 {ok, Filenames} = file:list_dir(<<"data/", Dirname2/binary, "/">>),
 lists:foreach(fun(Filename1) ->
@@ -73,6 +73,18 @@ end, Filenames)
 end, UsersDirs),
 io:format("LOADING FINISHED~n").
 
+%%====================================================================
+%% Internal functions
+%%====================================================================
+
+save_ets_data(_, '$end_of_table') ->
+    io:format("END OF CALENDAR~n");
+    
+save_ets_data(Cal, Key) ->
+    io:format("...~n"),
+write_to_file(Cal, Key),
+    save_ets_data(Cal, ets:next(Cal, Key)).
+    
 read_rest(OpenedFile, CurrentLine, Acc) ->
 case CurrentLine of
 eof ->
