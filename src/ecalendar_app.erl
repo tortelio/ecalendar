@@ -30,7 +30,10 @@ start(_StartType, _StartArgs) ->
         [{port, 8080}],
         #{env => #{dispatch => Dispatch}}
     ),
+    ets:new(calendar, [set, named_table, public]),
     ecalendar_file:load_ets_data(),
+    %Jozsilist = ets:match_object(calendar, {'_', ['_', '_', '_', <<"jozsi">>]}),
+    %io:format("Printing ~p ~n",[Jozsilist]),
     ecalendar_sup:start_link().
 
 %%--------------------------------------------------------------------

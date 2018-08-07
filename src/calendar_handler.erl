@@ -27,24 +27,24 @@ init(Req0=#{method := <<"PROPFIND">>}, State) ->
 Username = cowboy_req:binding(username, Req0),
 IsUser = filelib:is_dir(<<"data/", Username/binary>>),
 case IsUser of 
-true ->
-    Ctag = create_ctag(binary_to_atom(Username, utf8)),
-    {ok, IoBody, _} = read_body(Req0, <<"">>),
-    ReqBody = binary:split(IoBody, <<"getetag">>),
-    Body = case length(ReqBody) of
-               1 -> propfind_xml(Ctag, (Username));
-               _ -> ecalendar_xmlgen:create_propfind(Username)
-           end,
-    Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0);
+    true ->
+        Ctag = create_ctag(Username),
+        {ok, IoBody, _} = read_body(Req0, <<"">>),
+        ReqBody = binary:split(IoBody, <<"getetag">>),
+        Body = case length(ReqBody) of
+                   1 -> propfind_xml(Ctag, (Username));
+                   _ -> ecalendar_xmlgen:create_propfind(Username)
+               end,
+        Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0);
     false = IsUser ->
-    Body = <<"NOT REGISTERED USER">>,
-    Req = cowboy_req:reply(412, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0)
-    end,
+        Body = <<"NOT REGISTERED USER">>,
+        Req = cowboy_req:reply(412, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0)
+        end,
     {ok, Req, State};
 
 %% @doc Handle a REPORT Request.
 init(Req0=#{method := <<"REPORT">>}, State) ->
-    Body = ecalendar_xmlgen:create_report(binary_to_atom(cowboy_req:binding(username, Req0), utf8)),
+    Body = ecalendar_xmlgen:create_report(cowboy_req:binding(username, Req0)),
     Req = cowboy_req:reply(207, #{}, Body, Req0),
     {ok, Req, State};
 
@@ -99,16 +99,24 @@ propfind_calendar(Req, State) ->
 %%====================================================================
 
 %% @doc Concatenate all of the etags from the ets and then creates the Ctag for the calendar
-create_ctag(Cal) ->
-    create_ctag(Cal, ets:first(Cal), <<"">>).
+create_ctag(Username) ->
+    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Username]}),
+    create_ctag(UserList, <<"">>).
 
-create_ctag(_, '$end_of_table', Acc) ->
-    base64:encode(Acc);
+create_ctag([UserListHead|UserListTail], Acc) ->
+    {Filename, [Body, Etag, Uri, Username]} = UserListHead,
+    create_ctag(UserListTail, <<Acc/binary, Etag/binary>>);
 
-create_ctag(Cal, Key, Acc) ->
-    [{Key, CalendarList} | _] = ets:lookup(Cal, Key),
-    CurrentEtag = lists:nth(2, CalendarList),
-    create_ctag(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
+create_ctag([], Acc) ->
+    base64:encode(Acc).
+
+%create_ctag(_, '$end_of_table', Acc) ->
+    %base64:encode(Acc);
+
+%create_ctag(Cal, Key, Acc) ->
+    %[{Key, CalendarList} | _] = ets:lookup(Cal, Key),
+    %CurrentEtag = lists:nth(2, CalendarList),
+    %create_ctag(Cal, ets:next(Cal, Key), <<Acc/binary, CurrentEtag/binary>>).
 
 %% @doc The Response body for a PROPFIND Request in xml form.
 -spec propfind_xml(Ctag :: binary(), Username :: binary()) -> binary().
