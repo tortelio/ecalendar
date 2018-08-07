@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="utf-8"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:dav="DAV:"
+    xmlns:CS="http://calendarserver.org/ns/"
+    xmlns:C="urn:ietf:params:xml:ns:caldav"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    elementFormDefault="qualified"
+    targetNamespace="DAV:">
+
+    <element name="calendar-multiget">
+        <complexType>
+            <sequence>
+                <choice>
+                    <element ref="dav:allprop"/>
+                    <element ref="dav:prop"/>
+                </choice>
+                <element ref="dav:href" minOccurs="1" maxOccurs="unbounded"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="propfind">
+        <complexType>
+            <choice>
+                <element ref="dav:allprop"/>
+                <element ref="dav:propname"/>
+                <element ref="dav:prop"/>
+            </choice>
+        </complexType>
+    </element>
+
+    <element name="allprop">
+        <complexType/>
+    </element>
+
+    <element name="propname">
+        <complexType/>
+    </element>
+
+    <element name="prop">
+        <complexType>
+            <all>
+                <element ref="dav:creationdate" minOccurs="0"/>
+                <element ref="dav:displayname" minOccurs="0"/>
+                <element ref="dav:getcontentlanguage" minOccurs="0"/>
+                <element ref="dav:getcontentlength" minOccurs="0"/>
+                <element ref="dav:getcontenttype" minOccurs="0"/>
+                <element ref="dav:getetag" minOccurs="0"/>
+                <element ref="dav:getlastmodified" minOccurs="0"/>
+                <element ref="dav:resourcetype" minOccurs="0"/>
+                <element ref="dav:supported-report-set" minOccurs="0"/>
+                <element ref="dav:quota-available-bytes" minOccurs="0"/>
+                <element ref="dav:calendar-data" minOccurs="0"/>
+                <element ref="dav:quota-used-bytes" minOccurs="0"/>
+            </all>
+        </complexType>
+    </element>
+
+    <element name="calendar-data" type="xsd:string" />
+
+    <element name="calendar">
+        <complexType />
+    </element>
+
+    <element name="multistatus">
+        <complexType>
+            <sequence>
+                <element ref="dav:response" maxOccurs="unbounded"/>
+                <element ref="dav:responsedescription" minOccurs="0" maxOccurs="1"/>
+                <element ref="dav:sync-token" minOccurs="0" maxOccurs="1"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="getcontentlanguage">
+        <complexType mixed="true">
+            <sequence/>
+        </complexType>
+    </element>
+
+    <element name="getcontentlength">
+        <complexType mixed="true">
+            <sequence/>
+        </complexType>
+    </element>
+
+    <element name="getcontenttype" type="xsd:string" />
+
+    <element name="getetag" type="xsd:string" />
+    <!--        <complexType mixed="true">
+            <sequence/>
+        </complexType>
+    </element>-->
+
+    <element name="resourcetype">
+        <complexType>
+            <sequence>
+                <element ref="dav:collection" minOccurs="0"/>
+                <element ref="dav:calendar" minOccurs="0"/>
+                <any processContents="skip" namespace="##other" minOccurs="0" maxOccurs="unbounded" />
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="response">
+        <complexType>
+            <sequence>
+                <element ref="dav:href" minOccurs="1"/>
+                <choice>
+                    <sequence>
+                        <element ref="dav:status"/>
+                    </sequence>
+                    <element ref="dav:propstat" maxOccurs="unbounded"/>
+                </choice>
+                <element ref="dav:error" minOccurs="0" maxOccurs="1"/>
+                <element ref="dav:responsedescription" minOccurs="0" maxOccurs="1"/>
+                <element ref="dav:location" minOccurs="0" maxOccurs="1"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="status" type="xsd:string"/>
+
+    <element name="sync-token" type="anyURI"/>
+
+    <element name="href" type="xsd:string"/>
+
+    <element name="propstat">
+        <complexType>
+            <sequence>
+                <element ref="dav:prop"/>
+                <element ref="dav:status"/>
+                <element ref="dav:error" minOccurs="0" maxOccurs="1"/>
+                <element ref="dav:responsedescription" minOccurs="0" maxOccurs="1"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="responsedescription" type="xsd:string"/>
+
+    <element name="location">
+        <complexType>
+            <sequence>
+                <element ref="dav:href" maxOccurs="1"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="error">
+        <complexType>
+            <sequence>
+                <any namespace="##any"/>
+            </sequence>
+        </complexType>
+    </element>
+
+  <element name="collection">
+    <complexType/>
+  </element>
+
+  <element name="creationdate">
+    <complexType mixed="true">
+      <sequence/>
+    </complexType>
+  </element>
+
+  <element name="displayname">
+    <complexType mixed="true">
+      <sequence/>
+    </complexType>
+  </element>
+
+  <element name="getlastmodified">
+    <complexType mixed="true">
+      <sequence/>
+    </complexType>
+  </element>
+
+  <element name="quota-available-bytes">
+    <complexType mixed="true">
+      <sequence/>
+    </complexType>
+  </element>
+
+  <element name="quota-used-bytes">
+    <complexType mixed="true">
+      <sequence/>
+    </complexType>
+  </element>
+
+  <element name="supported-report-set">
+    <complexType>
+      <sequence>
+        <element maxOccurs="unbounded" ref="dav:supported-report"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="supported-report">
+    <complexType>
+      <sequence>
+        <element ref="dav:report"/>
+      </sequence>
+    </complexType>
+  </element>
+
+  <element name="report">
+    <complexType>
+      <sequence>
+        <any processContents="skip" namespace="##other" minOccurs="1" maxOccurs="1"/>
+      </sequence>
+    </complexType>
+  </element>
+
+</schema>

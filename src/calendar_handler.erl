@@ -29,11 +29,12 @@ IsUser = filelib:is_dir(<<"data/", Username/binary>>),
 case IsUser of 
     true ->
         Ctag = create_ctag(Username),
+    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
         {ok, IoBody, _} = read_body(Req0, <<"">>),
         ReqBody = binary:split(IoBody, <<"getetag">>),
         Body = case length(ReqBody) of
                    1 -> propfind_xml(Ctag, (Username));
-                   _ -> ecalendar_xmlgen:create_propfind(Username)
+                   _ -> ecalendar_xmlparse:create_response(Username, IoBody, Uri)
                end,
         Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0);
     false = IsUser ->
@@ -44,7 +45,9 @@ case IsUser of
 
 %% @doc Handle a REPORT Request.
 init(Req0=#{method := <<"REPORT">>}, State) ->
-    Body = ecalendar_xmlgen:create_report(cowboy_req:binding(username, Req0)),
+    {ok, IoBody, _} = read_body(Req0, <<"">>),
+    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
+    Body = ecalendar_xmlparse:create_response(cowboy_req:binding(username, Req0), IoBody, Uri),
     Req = cowboy_req:reply(207, #{}, Body, Req0),
     {ok, Req, State};
 
@@ -103,7 +106,7 @@ create_ctag(Username) ->
     UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Username]}),
     create_ctag(UserList, <<"">>).
 
-create_ctag([UserListHead|UserListTail], Acc) ->
+create_ctag([UserListHead | UserListTail], Acc) ->
     {Filename, [Body, Etag, Uri, Username]} = UserListHead,
     create_ctag(UserListTail, <<Acc/binary, Etag/binary>>);
 
