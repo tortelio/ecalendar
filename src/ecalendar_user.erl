@@ -10,9 +10,9 @@
 
 %% API
 -export([exists/1,
-        create/1,
-        delete/1
-]).
+         create/1,
+         delete/1
+        ]).
 
 %%====================================================================
 %% API
@@ -43,11 +43,11 @@ delete(Username) ->
             io:format("Deleting user~n"),
             {ok, Filenames} = file:list_dir(<<"data/", Username/binary, "/">>),
             lists:foreach(fun(Filename1) ->
-                            io:format("...~n"),
-                            Filename2 = binary:list_to_bin(Filename1),
-                            file:delete(<<"data/", Username/binary, "/", Filename2/binary>>),
-                            ets:delete(calendar, Filename2)
-            end, Filenames),
+                                  io:format("...~n"),
+                                  Filename2 = binary:list_to_bin(Filename1),
+                                  file:delete(<<"data/", Username/binary, "/", Filename2/binary>>),
+                                  ets:delete(calendar, Filename2)
+                          end, Filenames),
             file:del_dir(<<"data/", Username/binary>>),
             %ets:delete(binary_to_atom(Username, utf8)),
             io:format(<<Username/binary, "  user deleted~n">>),
@@ -60,4 +60,3 @@ delete(Username) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
-

@@ -1,6 +1,18 @@
+%%%-------------------------------------------------------------------
+%%% @doc Handles the XML response generation on the server.
+%%%-------------------------------------------------------------------
+
 -module(ecalendar_xmlparse).
 
+%%====================================================================
+%% Exports
+%%====================================================================
+
 -export([create_response/3]).
+
+%%====================================================================
+%% API
+%%====================================================================
 
 create_response(Username, RequestBody, UserURI) ->
     {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd"),
@@ -9,6 +21,10 @@ create_response(Username, RequestBody, UserURI) ->
     {ok, OutPut} = erlsom:write(Response, Model),
     OutBin = binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]),
     <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", OutBin/binary>>.
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
 
 parse_request(InputXML, Model) ->
     {ok, Result} = erlsom:parse(InputXML, Model),

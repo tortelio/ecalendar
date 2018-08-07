@@ -24,15 +24,15 @@
 %% @doc Handle a PROPFIND Request.
 -spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
-Username = cowboy_req:binding(username, Req0),
-IsUser = filelib:is_dir(<<"data/", Username/binary>>),
-case IsUser of 
-    true ->
-        Ctag = create_ctag(Username),
-    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
-        {ok, IoBody, _} = read_body(Req0, <<"">>),
-        ReqBody = binary:split(IoBody, <<"getetag">>),
-        Body = case length(ReqBody) of
+    Username = cowboy_req:binding(username, Req0),
+    IsUser = filelib:is_dir(<<"data/", Username/binary>>),
+    case IsUser of 
+        true ->
+            Ctag = create_ctag(Username),
+            Uri = iolist_to_binary(cowboy_req:uri(Req0)),
+            {ok, IoBody, _} = read_body(Req0, <<"">>),
+            ReqBody = binary:split(IoBody, <<"getetag">>),
+            Body = case length(ReqBody) of
                    1 -> propfind_xml(Ctag, (Username));
                    _ -> ecalendar_xmlparse:create_response(Username, IoBody, Uri)
                end,
