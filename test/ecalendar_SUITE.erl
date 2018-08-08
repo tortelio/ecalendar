@@ -6,7 +6,7 @@
 all() -> [get_calendar,
           %get_calendar_with_unauthorized_user,
           add_event,
-          get_report_of_event,
+          %get_report_of_event,
           add_event_with_unauthorized_user,
           delete_event,
           update_event,
@@ -53,41 +53,41 @@ ecalendar_user:delete(<<"jozsi">>),
 
 %% @doc Create a not existing user.
 create_new_user(Config) ->
-?assertEqual(false, ecalendar_user:exists(<<"hermina">>)),
-{ok, _} = ecalendar_user:create(<<"hermina">>),
-?assertEqual(true, ecalendar_user:exists(<<"hermina">>)),
+    ?assertEqual(false, ecalendar_user:exists(<<"hermina">>)),
+    {ok, _} = ecalendar_user:create(<<"hermina">>),
 
-ok.
+    ?assertEqual(true, ecalendar_user:exists(<<"hermina">>)),
+
+    ok.
 
 %% @doc Create an existing user.
 create_existing_user(Config) ->
-?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
-{error, _} = ecalendar_user:create(<<"jozsi">>),
+    ?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
+    {error, _} = ecalendar_user:create(<<"jozsi">>),
 
-ok.
+    ok.
 
 %% @doc Delete a not existing user.
 delete_not_existing_user(Config) ->
-?assertEqual(false, ecalendar_user:exists(<<"bela">>)),
-{error, _} = ecalendar_user:delete(<<"bela">>),
+    ?assertEqual(false, ecalendar_user:exists(<<"bela">>)),
+    {error, _} = ecalendar_user:delete(<<"bela">>),
 
-ok.
+    ok.
 
 %% @doc Delete an existing user.
 delete_existing_user(Config) ->
-{ok, _} = ecalendar_user:create(<<"flora">>),
-?assertEqual(true, ecalendar_user:exists(<<"flora">>)),
+    {ok, _} = ecalendar_user:create(<<"flora">>),
+    ?assertEqual(true, ecalendar_user:exists(<<"flora">>)),
 
-%ecalendar_file:write_to_file(flora, Filename),
-{ok, OpenedFile} = file:open(<<"data/flora/event.ics">>, [write, binary]),
+    {ok, OpenedFile} = file:open(<<"data/flora/event.ics">>, [write, binary]),
     file:write(OpenedFile, <<"Fora's event.">>),
     file:close(OpenedFile),
+    {ok, _} = ecalendar_user:delete(<<"flora">>),
 
-{ok, _} = ecalendar_user:delete(<<"flora">>),
-?assertEqual(false, ecalendar_user:exists(<<"flora">>)),
-?assertEqual(undefined, ets:info(flora)),
+    ?assertEqual(false, ecalendar_user:exists(<<"flora">>)),
+    ?assertEqual(undefined, ets:info(flora)),
 
-ok.
+    ok.
 
 %% @doc User sends a request with proper credentials to the server and get own calendar
 get_calendar(Config) ->
@@ -111,7 +111,7 @@ get_calendar_with_unauthorized_user(Config) ->
 
     ok.
 
-% @doc User adds an event to his calendar
+%% @doc User adds an event to his calendar
 add_event(_Config) ->
     ConnPid = ecalendar_test:get_http_connection(_Config),
 
@@ -121,7 +121,7 @@ add_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    EventExists = ecalendar_test:is_event_in_database(jozsi, <<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(<<"valami.ics">>),
 
     ?assertEqual(true, EventExists),
     ok.
@@ -137,22 +137,22 @@ add_event_with_unauthorized_user(_Config) ->
 
     ok.
 
-get_report_of_event(Config) ->
-    ConnPid = ecalendar_test:get_http_connection(Config),
+%get_report_of_event(Config) ->
+    %ConnPid = ecalendar_test:get_http_connection(Config),
 
-    Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
-    TestBody = ecalendar_test:get_test_putbody(),
-    Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
+    %Headers = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    %TestBody = ecalendar_test:get_test_putbody(),
+    %Reply = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", Headers, TestBody),
 
-    ?assertEqual({201, <<"CREATED">>}, Reply),
+    %?assertEqual({201, <<"CREATED">>}, Reply),
 
-    ReportHeader = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/xml">>}]),
-    ReportBody = ecalendar_test:get_report_request(<<"valami.ics">>),
-    {Code, Reply2} = http_client:custom_request(ConnPid, <<"REPORT">>, "/jozsi/calendar", ReportHeader, ReportBody),
+    %ReportHeader = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"content-type">>, <<"text/xml">>}]),
+    %ReportBody = ecalendar_test:get_report_request(<<"valami.ics">>),
+    %{Code, Reply2} = http_client:custom_request(ConnPid, <<"REPORT">>, "/jozsi/calendar", ReportHeader, ReportBody),
 
-    ?assertEqual(207, Code),
+    %?assertEqual(207, Code),
 
-    ok.
+    %ok.
 
 delete_event(_Config) ->
     ConnPid = ecalendar_test:get_http_connection(_Config),
@@ -163,11 +163,11 @@ delete_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    Etag = ecalendar_test:get_etag_of_event(jozsi, <<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(<<"valami.ics">>),
     DeleteHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag}]),
     Reply2 = http_client:delete(ConnPid, "/jozsi/calendar/valami.ics", DeleteHeaders),
 
-    EventExists = ecalendar_test:is_event_in_database(jozsi, <<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(<<"valami.ics">>),
     ?assertEqual({204, false}, {Reply2, EventExists}),
 
     ok.
@@ -182,7 +182,7 @@ update_event(_Config) ->
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
     NewBody = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:UPDATEDICSBODY\r\nEND:VCALENDAR">>,
-    Etag = ecalendar_test:get_etag_of_event(jozsi, <<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(<<"valami.ics">>),
     NewHeaders = ecalendar_test:custom_headers(<<"jozsi">>, <<"password">>, [{<<"if-match">>, Etag},
                                                                              {<<"content-type">>, <<"text/calendar">>}]),
     Reply2 = http_client:put(ConnPid, "/jozsi/calendar/valami.ics", NewHeaders, NewBody),

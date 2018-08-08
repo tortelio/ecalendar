@@ -102,10 +102,12 @@ propfind_calendar(Req, State) ->
 %%====================================================================
 
 %% @doc Concatenate all of the etags from the ets and then creates the Ctag for the calendar
+-spec create_ctag(Username :: binary()) -> binary().
 create_ctag(Username) ->
     UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Username]}),
     create_ctag(UserList, <<"">>).
 
+-spec create_ctag([], Username :: binary()) -> binary().
 create_ctag([UserListHead | UserListTail], Acc) ->
     {Filename, [Body, Etag, Uri, Username]} = UserListHead,
     create_ctag(UserListTail, <<Acc/binary, Etag/binary>>);

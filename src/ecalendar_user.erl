@@ -22,7 +22,7 @@
 exists(Username) ->
     filelib:is_dir(<<"data/", Username/binary>>).
 
-%% @doc Create a directory and an ets for the user.
+%% @doc Create a directory and an ets.
 create(Username) ->
     case exists(Username) of
         true ->
@@ -36,7 +36,7 @@ create(Username) ->
             {ok, <<Username/binary, " user created">>}
     end.
 
-%% @doc Delete the user's directory and ets.
+%% @doc Delete the user's directory and ets objects.
 delete(Username) ->
     case exists(Username) of
         true ->

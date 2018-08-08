@@ -5,9 +5,9 @@
          is_xml_response/1,
          get_test_putbody/0,
          custom_headers/3,
-         get_etag_of_event/2,
+         get_etag_of_event/1,
          get_report_request/1,
-         is_event_in_database/2,
+         is_event_in_database/1,
          get_http_connection/1]).
 
 -export([authorization_headers/2]).
@@ -46,14 +46,14 @@ get_report_request(Filename) ->
     <C:calendar-multiget xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:prop><D:getetag/><C:calendar-data/>
     </D:prop><D:href>/jozsi/calendar/", Filename/binary, "</D:href></C:calendar-multiget>">>.
 
-get_etag_of_event(Cal, EventName) ->
-    case ets:lookup(Cal, EventName) of
-        [{EventName, [_, Etag, _ | _]}] -> Etag;
-        _ -> error
+get_etag_of_event(EventName) ->
+    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
+    [{EventName, [_, Etag, _, _]}] -> Etag;
+    _ -> error
     end.
 
-is_event_in_database(Cal,EventName) ->
-    case ets:lookup(Cal, EventName) of
-        [] -> false;
-        _ -> true
+is_event_in_database(EventName) ->
+    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
+    [] -> false;
+    _ -> true
     end.
