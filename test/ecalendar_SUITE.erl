@@ -36,7 +36,7 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
-ecalendar_user:create(<<"jozsi">>),
+ecalendar_user:create(<<"jozsi">>, <<"am96c2k6cGFzc3dvcmQ=">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
@@ -53,17 +53,17 @@ ecalendar_user:delete(<<"jozsi">>),
 
 %% @doc Create a not existing user.
 create_new_user(Config) ->
-    ?assertEqual(false, ecalendar_user:exists(<<"hermina">>)),
-    {ok, _} = ecalendar_user:create(<<"hermina">>),
+    ?assertEqual(false, ecalendar_user:exists(<<"mari">>)),
+    {ok, _} = ecalendar_user:create(<<"mari">>, <<"bWFyaTpwYXNzd29yZA==">>),
 
-    ?assertEqual(true, ecalendar_user:exists(<<"hermina">>)),
+    ?assertEqual(true, ecalendar_user:exists(<<"mari">>)),
 
     ok.
 
 %% @doc Create an existing user.
 create_existing_user(Config) ->
     ?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
-    {error, _} = ecalendar_user:create(<<"jozsi">>),
+    {error, _} = ecalendar_user:create(<<"jozsi">>, <<"am96c2k6cGFzc3dvcmQ=">>),
 
     ok.
 
@@ -76,15 +76,15 @@ delete_not_existing_user(Config) ->
 
 %% @doc Delete an existing user.
 delete_existing_user(Config) ->
-    {ok, _} = ecalendar_user:create(<<"flora">>),
-    ?assertEqual(true, ecalendar_user:exists(<<"flora">>)),
+    {ok, _} = ecalendar_user:create(<<"janos">>, <<"amFub3M6cGFzc3dvcmQ=">>),
+    ?assertEqual(true, ecalendar_user:exists(<<"janos">>)),
 
-    {ok, OpenedFile} = file:open(<<"data/flora/event.ics">>, [write, binary]),
-    file:write(OpenedFile, <<"Fora's event.">>),
+    {ok, OpenedFile} = file:open(<<"data/janos/event.ics">>, [write, binary]),
+    file:write(OpenedFile, <<"janos's event.">>),
     file:close(OpenedFile),
-    {ok, _} = ecalendar_user:delete(<<"flora">>),
+    {ok, _} = ecalendar_user:delete(<<"janos">>),
 
-    ?assertEqual(false, ecalendar_user:exists(<<"flora">>)),
+    ?assertEqual(false, ecalendar_user:exists(<<"janos">>)),
     ?assertEqual(undefined, ets:info(flora)),
 
     ok.

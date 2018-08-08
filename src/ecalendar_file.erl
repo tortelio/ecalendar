@@ -12,7 +12,8 @@
 -export([save_ets_data/1,
          write_to_file/2,
          delete_file/2,
-         load_ets_data/0]).
+         load_calendar_data/0,
+         load_authorization_data/0]).
 
 %%====================================================================
 %% API
@@ -26,7 +27,7 @@ save_ets_data(Cal) ->
 %% @doc Write the calendar component into an ics file.
 write_to_file(Cal, Key) ->
     io:format("SAVING EVENT TO FILE~n"),
-    {ok, OpenedFile} = file:open(<<"data/", Cal/binary, "/", Key/binary>>, [write, binary]),
+    {ok, OpenedFile} = file:open(<<"data/", Cal/binary, "/", Key/binary>>, [write, read, binary]),
     [{Key, CalendarList} | _] = ets:lookup(calendar, Key),
     ComponentData = lists:nth(1, CalendarList),
     ComponentEtag = lists:nth(2, CalendarList),
@@ -45,8 +46,8 @@ delete_file(Username, Filename) ->
     io:format("EVENT DELETED~n"),
     ets:i().
 
-%% @doc load the stored data into one or more ets depending on the number of users.
-load_ets_data() ->
+%% @doc Load the stored calendar data into one ets
+load_calendar_data() ->
     filelib:ensure_dir("data/"),
     io:format("~nLOADING SAVED DATA~n"),
     {ok, UsersDirs} = file:list_dir("data/"),
@@ -57,7 +58,6 @@ load_ets_data() ->
                           Dirname2 = binary:list_to_bin(Dirname1),
                           Dirname = binary_to_atom(Dirname2, utf8),
                           io:format(<<"Creating ", Dirname2/binary, "'s calendar~n">>),
-                          %ets:new(Dirname, [set, named_table, public]),
                           {ok, Filenames} = file:list_dir(<<"data/", Dirname2/binary, "/">>),
                           lists:foreach(fun(Filename1) ->
                                                 io:format("...~n"),
@@ -76,6 +76,13 @@ load_ets_data() ->
     io:format("LOADING FINISHED~n"),
     ets:i().
 
+%% @doc Load the stored authentication data into an ets.
+load_authorization_data() ->
+    {ok, OpenedFile} = file:open(<<"Auth">>, [read, write, binary]),
+    ok = load_user_auth(OpenedFile, file:read_line(OpenedFile)).
+    
+    
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
@@ -91,7 +98,19 @@ save_ets_data(Cal, Key) ->
 read_rest(OpenedFile, CurrentLine, Acc) ->
     case CurrentLine of
         eof ->
+            file:close(OpenedFile),
             Acc;
         {ok, Data} ->
             read_rest(OpenedFile, file:read_line(OpenedFile), <<Acc/binary, Data/binary>>)
     end.
+
+load_user_auth(OpenedFile, CurrentLine) ->
+    case CurrentLine of 
+        eof ->
+            file:close(OpenedFile),
+            ok;
+        {ok, Data} ->
+            [User, Password] = binary:split(Data, <<":">>),
+            ets:insert(authorization, {User, Password}),
+            load_user_auth(OpenedFile, file:read_line(OpenedFile))
+        end.

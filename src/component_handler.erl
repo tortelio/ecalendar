@@ -45,10 +45,11 @@ known_methods(Req, State) ->
 -spec resource_exists(Req :: cowboy_req:req(), State :: any()) -> {IsExists :: atom(), Req :: cowboy_req:req(), State :: any()}.
 resource_exists(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
-    IsExists = case ets:lookup(calendar, Filename) of
-                   [] -> false;
-                   _ -> true
-               end,
+    IsExists = ets:member(calendar, Filename),
+    %IsExists = case ets:lookup(calendar, Filename) of
+                   %[] -> false;
+                   %_ -> true
+               %end,
     {IsExists, Req, State}.
 
 %% @doc Media types accepted by the server.
@@ -68,11 +69,21 @@ content_types_provided(Req,State)->
 %% @doc Check the authorization of the request.
 is_authorized(Req, State) ->
     Username = cowboy_req:binding(username, Req),
-    case cowboy_req:parse_header(<<"authorization">>, Req) of
-        {basic, Username, <<"password">>} ->
-            {true, Req, State};
-        _ ->
-            {{false, <<"Basic realm=\"Access to the staging site\"">>}, Req, State}
+    [{Username, StoredPasswordHash}] = ets:lookup(authorization, Username),
+    StoredPasswordHash2 = string:tokens(erlang:binary_to_list(StoredPasswordHash), "\n"),
+    StoredPasswordHash3 = list_to_binary(StoredPasswordHash2),
+    case cowboy_req:header(<<"authorization">>, Req) of
+        undefined ->
+            {{false, <<"Basic realm=\"Access to the staging site\"">>}, Req, State};
+        AuthHeader ->
+            PasswordHashSplit = binary:split(AuthHeader, <<" ">>),
+            PasswordHash = lists:nth(2, PasswordHashSplit),
+            case PasswordHash of
+                 StoredPasswordHash3->
+                    {true, Req, State};
+                _ ->
+                    {{false, <<"Basic realm=\"Access to the staging site\"">>}, Req, State}
+            end
     end.
 
 %% @doc Send back a simple response based on the method of the request.

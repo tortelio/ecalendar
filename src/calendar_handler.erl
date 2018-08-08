@@ -85,6 +85,7 @@ content_types_provided(Req,State)->
 %% @doc Check the authorization of the request.
 is_authorized(Req, State) ->
     Username = cowboy_req:binding(username, Req),
+    [{Username, StoredPasswordHash}]= ets:lookup(authorization, Username),
     case cowboy_req:parse_header(<<"authorization">>, Req) of
         {basic, Username, <<"password">>} ->
             {true, Req, State};

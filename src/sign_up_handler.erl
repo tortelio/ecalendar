@@ -22,13 +22,20 @@
 -spec init(Req :: cowboy_req:req(), Opts :: any()) -> {atom(), Req :: cowboy_req:req(), Opts :: any()}.
 init(Req0=#{method := <<"POST">>}, State) ->
     Username = cowboy_req:header(<<"username">>, Req0),
+    Password = cowboy_req:header(<<"password">>, Req0),
     case Username of
         undefined ->
             Body = <<"Missing username header">>,
             Req = cowboy_req:reply(400, #{}, Body, Req0);
         _ ->
-            {_, Body} = ecalendar_user:create(Username),
-            Req = cowboy_req:reply(200, #{}, Body, Req0)
+            case Username of
+                undefined ->
+                    Body = <<"Missing password header">>,
+                    Req = cowboy_req:reply(400, #{}, Body, Req0);
+                _ ->
+                    {_, Body} = ecalendar_user:create(Username, Password),
+                    Req = cowboy_req:reply(200, #{}, Body, Req0)
+            end
     end,
     {ok, Req, State};
 

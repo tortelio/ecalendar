@@ -10,7 +10,7 @@
 
 %% API
 -export([exists/1,
-         create/1,
+         create/2,
          delete/1
         ]).
 
@@ -23,14 +23,16 @@ exists(Username) ->
     filelib:is_dir(<<"data/", Username/binary>>).
 
 %% @doc Create a directory and an ets.
-create(Username) ->
+create(Username, Password) ->
     case exists(Username) of
         true ->
             io:format(<<Username/binary, " already exists~n">>),
             {error, <<Username/binary, " already exists">>};
         false ->
             filelib:ensure_dir(<<"data/", Username/binary, "/">>),
-            %ets:new(binary_to_atom(Username, utf8), [set, named_table, public]),
+            {ok, OpenedFile} = file:open(<<"Auth">>, [append, binary]),
+            file:write(OpenedFile, <<Username/binary, ":", Password/binary, "\n">>),
+            ets:insert(authorization, {Username, Password}),
             io:format("~n"),
             io:format(<<Username/binary, " user created~n">>),
             {ok, <<Username/binary, " user created">>}
@@ -49,7 +51,15 @@ delete(Username) ->
                                   ets:delete(calendar, Filename2)
                           end, Filenames),
             file:del_dir(<<"data/", Username/binary>>),
-            %ets:delete(binary_to_atom(Username, utf8)),
+            ets:delete(authorization, Username),
+            
+            %% ets iteration to binary and delete+make new Auth.
+            AuthData = create_auth_data(),
+            file:delete(<<"Auth">>),
+            {ok, OpenedFile} = file:open(<<"Auth">>, [write, read, binary]),
+            file:write(OpenedFile, AuthData),
+            file:close(OpenedFile),
+            
             io:format(<<Username/binary, "  user deleted~n">>),
             {ok, <<Username/binary, "  deleted">>};
         false ->
@@ -60,3 +70,14 @@ delete(Username) ->
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+create_auth_data() ->
+    create_auth_data(ets:first(authorization), <<"">>).
+
+create_auth_data('$end_of_table', Acc) ->
+    io:format(Acc),
+    Acc;
+
+create_auth_data(Username, Acc) ->
+    [{Username, PassHash}] = ets:lookup(authorization, Username),
+    create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", PassHash/binary, "\n">>).
