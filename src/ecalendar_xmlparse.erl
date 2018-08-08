@@ -15,12 +15,16 @@
 %%====================================================================
 
 create_response(Username, RequestBody, UserURI) ->
-    {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd"),
+    {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd", [{include_files, [{"urn:ietf:params:xml:ns:caldav", "C", "http://calendarserver.org/ns/"}]}]),
     RequestList = parse_request(RequestBody, Model),
+    io:format("~p~n", [Model]),
     Response = get_requested_data(Username, UserURI, RequestList),
+    %io:format("~p~n", [Response]),
     {ok, OutPut} = erlsom:write(Response, Model),
     OutBin = binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]),
-    <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", OutBin/binary>>.
+    file:write_file("Ki.xml", OutBin),
+    OutBin.
+    %<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", OutBin/binary>>.
 
 %%====================================================================
 %% Internal functions
@@ -41,12 +45,7 @@ filterfunction(undefined) ->
 filterfunction(Elem) ->
     case is_tuple(Elem) of
         false ->
-            case is_list(Elem) of
-                true when Elem =/= [] ->
-                    [];
-                _ ->
-                    Elem
-            end;
+            Elem;
         true ->
             get_requested_elements(Elem)
     end.
@@ -55,28 +54,25 @@ get_requested_data(Cal, Uri, ReqList) ->
     ResponseBody = create_response_body(ReqList, Cal, Uri),
     {multistatus, [], ResponseBody, undefined, undefined}.
 
-create_response_body([ReqForm | Rest], Cal, Uri) ->
-    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Cal]}),
+create_response_body([ReqForm | Rest], CalUser, CalUri) ->
+    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', CalUser]}),
     case ReqForm of
         propfind ->
-            get_propfind(Rest, UserList, Uri);
+            case lists:member(resourcetype, Rest) =:= false or lists:member('supported-report-set', Rest) of
+                true ->
+                    get_ctag_response(CalUser, CalUri);
+                _ ->
+                    get_propfind(Rest, UserList, CalUri)
+            end;
         'calendar-multiget' ->
-            get_report(UserList)
+            get_event_responses(UserList, [], report)
     end.
 
 get_propfind(ReqList, UserList, Uri) ->
     CalPropBody = create_prop_body(ReqList),
     EventData = get_event_responses(UserList, [], propfind),
-    [{response, [], Uri, [{propstat, [], CalPropBody,  "HTTP/1.1 200 OK", undefined, undefined}
-                         % {propstat, [], {prop, [], undefined, undefined, undefined, undefined, undefined,
-                          %                "JJJ", undefined, undefined, undefined, undefined, undefined,
-                         %                 undefined}, "HTTP/1.1 404 Not Found", undefined, undefined}
-                         ],
+    [{response, [], Uri, [{propstat, [], CalPropBody,  "HTTP/1.1 200 OK", undefined, undefined}],
       undefined, undefined, undefined} | EventData].
-
-%% TODO
-get_report(Userdata) ->
-    get_event_responses(Userdata, [], report).
 
 get_event_responses([], Acc, _) ->
     Acc;
@@ -95,8 +91,9 @@ get_event_responses([Current | Rest], Acc, Mode) ->
     get_event_responses(Rest, [EventReport | Acc], Mode).
 
 create_prop_body(ReqList) ->
-    PropElements = [creationdate, displayname, getcontentlanguage, getcontentlength, getcontenttype, getetag, getlastmodified,
-                    resourcetype, 'supported-report-set', 'quota-available-bytes','calendar-data', 'quota-used-bytes'],
+    PropElements = [resourcetype, owner, 'current-user-principal', 'supported-report-set', 'supported-calendar-component-set', 
+                    getcontentlength, getcontenttype, getetag, getlastmodified,
+                    'quota-available-bytes','calendar-data', "TEST"],
     Start = {prop, []},
     create_prop_body(PropElements, ReqList, 3, Start).
 
@@ -115,8 +112,6 @@ create_prop_body([CurrentProp | Rest], ReqList, Pos, Acc) ->
 
 get_element(Element) ->
     case Element of
-        getcontenttype ->
-            {getcontenttype, [], "httpd/unix-directory", []};
         resourcetype ->
             {resourcetype, [], {collection, []}, {calendar, []}, []};
         _ ->
@@ -124,5 +119,38 @@ get_element(Element) ->
     end.
 
 create_event_prop(CalBody, ContType, Etag) ->
-    {prop, [], undefined, undefined, undefined, undefined, ContType,
-     Etag, undefined, undefined, undefined, undefined, CalBody, undefined}.
+    {prop, [], undefined, undefined, undefined, undefined, undefined,
+     undefined, ContType, Etag, undefined, undefined, CalBody, undefined}.
+
+get_ctag_response(CalUser, CalURI) ->
+    ShortURI = <<CalUser/binary, "/calendar/">>,
+    PropBody = ctag_prop_body(CalUser, CalURI),
+    [{response, [], ShortURI, [{propstat, [], PropBody, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined}].
+ctag_prop_body(User, Uri) ->
+    Ctag = create_ctag(User),
+    SuppComp = {'supported-calendar-component-set', [], [{comp, [], "VEVENT"}]},
+    SuppReports = get_reports(['calendar-multiget', 'calendar-query', 'free-busy-query'], []),
+    {prop, [], {resourcetype, [], {collection, []}, {'calendar', []}, []}, {owner, [], binary:bin_to_list(Uri)},
+     {'current-user-principal',[], binary:bin_to_list(Uri)}, {'supported-report-set', [], SuppReports, []},
+     SuppComp, undefined, undefined, undefined, undefined, undefined, undefined, Ctag}.
+
+get_reports([], Acc) ->
+    lists:reverse(Acc);
+
+get_reports([Current | Rest], Acc) ->
+    This = {'supported-report', [], {report, [], {Current, [], undefined, undefined}}},
+    get_reports(Rest, [This | Acc]).
+
+%% @doc Concatenate all of the etags from the ets and then creates the Ctag for the calendar
+-spec create_ctag(Username :: binary()) -> binary().
+create_ctag(Username) ->
+    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Username]}),
+    create_ctag(UserList, <<"">>).
+
+-spec create_ctag([], Username :: binary()) -> binary().
+create_ctag([UserListHead | UserListTail], Acc) ->
+    {Filename, [Body, Etag, Uri, Username]} = UserListHead,
+    create_ctag(UserListTail, <<Acc/binary, Etag/binary>>);
+
+create_ctag([], Acc) ->
+    base64:encode(Acc).

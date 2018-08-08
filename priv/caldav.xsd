@@ -1,20 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:dav="DAV:"
-    xmlns:CS="http://calendarserver.org/ns/"
     xmlns:C="urn:ietf:params:xml:ns:caldav"
     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     elementFormDefault="qualified"
     targetNamespace="DAV:">
-
-    <element name="calendar-multiget">
+    <element name="calendar-multiget" nillable="true">
         <complexType>
             <sequence>
-                <choice>
-                    <element ref="dav:allprop"/>
-                    <element ref="dav:prop"/>
-                </choice>
-                <element ref="dav:href" minOccurs="1" maxOccurs="unbounded"/>
+                <element ref="dav:prop" minOccurs="0"/>
+                <element ref="dav:href" minOccurs="0" maxOccurs="unbounded"/>
             </sequence>
         </complexType>
     </element>
@@ -40,27 +35,39 @@
     <element name="prop">
         <complexType>
             <all>
-                <element ref="dav:creationdate" minOccurs="0"/>
-                <element ref="dav:displayname" minOccurs="0"/>
-                <element ref="dav:getcontentlanguage" minOccurs="0"/>
+                <element ref="dav:resourcetype" minOccurs="0"/>
+                <element ref="dav:owner" minOccurs="0"/>
+                <element ref="dav:current-user-principal" minOccurs="0"/>
+                <element ref="dav:supported-report-set" minOccurs="0"/>
+                <element ref="dav:supported-calendar-component-set" minOccurs="0"/>
                 <element ref="dav:getcontentlength" minOccurs="0"/>
                 <element ref="dav:getcontenttype" minOccurs="0"/>
                 <element ref="dav:getetag" minOccurs="0"/>
                 <element ref="dav:getlastmodified" minOccurs="0"/>
-                <element ref="dav:resourcetype" minOccurs="0"/>
-                <element ref="dav:supported-report-set" minOccurs="0"/>
                 <element ref="dav:quota-available-bytes" minOccurs="0"/>
                 <element ref="dav:calendar-data" minOccurs="0"/>
-                <element ref="dav:quota-used-bytes" minOccurs="0"/>
+                <element ref="dav:getctag" minOccurs="0"/>
             </all>
         </complexType>
     </element>
 
     <element name="calendar-data" type="xsd:string" />
 
+    <element name="supported-calendar-component-set">
+        <complexType mixed="true">
+            <sequence>
+                <element ref="dav:comp" minOccurs="0"/>
+            </sequence>
+        </complexType>
+    </element>
+
+    <complexType name="comp">
+        <attribute name="name" type="xsd:string" />
+    </complexType>
+    <!--
     <element name="calendar">
         <complexType />
-    </element>
+    </element>-->
 
     <element name="multistatus">
         <complexType>
@@ -84,19 +91,33 @@
         </complexType>
     </element>
 
+    <element name="owner">
+        <complexType>
+            <sequence>
+                <element ref="dav:href" minOccurs="0" />
+            </sequence>
+        </complexType>
+    </element>
+
+    <element name="current-user-principal">
+        <complexType>
+            <sequence>
+                <element ref="dav:href" minOccurs="0" />
+            </sequence>
+        </complexType>
+    </element>
+
     <element name="getcontenttype" type="xsd:string" />
 
     <element name="getetag" type="xsd:string" />
-    <!--        <complexType mixed="true">
-            <sequence/>
-        </complexType>
-    </element>-->
+
+    <element name="getctag" type="xsd:String" />
 
     <element name="resourcetype">
         <complexType>
             <sequence>
                 <element ref="dav:collection" minOccurs="0"/>
-                <element ref="dav:calendar" minOccurs="0"/>
+                <element ref="C:calendar" minOccurs="0"/>
                 <any processContents="skip" namespace="##other" minOccurs="0" maxOccurs="unbounded" />
             </sequence>
         </complexType>
@@ -158,11 +179,15 @@
     <complexType/>
   </element>
 
-  <element name="creationdate">
+  <element name="free-busy-query">
+    <complexType/>
+  </element>
+<!--
+  <element name="calendar-multiget">
     <complexType mixed="true">
       <sequence/>
     </complexType>
-  </element>
+</element>-->
 
   <element name="displayname">
     <complexType mixed="true">
@@ -191,25 +216,33 @@
   <element name="supported-report-set">
     <complexType>
       <sequence>
-        <element maxOccurs="unbounded" ref="dav:supported-report"/>
+        <element minOccurs="0" maxOccurs="unbounded" ref="dav:supported-report"/>
       </sequence>
     </complexType>
   </element>
 
   <element name="supported-report">
-    <complexType>
-      <sequence>
-        <element ref="dav:report"/>
-      </sequence>
-    </complexType>
+      <complexType>
+          <sequence>
+              <element ref="dav:report"/>
+          </sequence>
+      </complexType>
+  </element>
+
+  <element name="calendar-query">
+      <complexType>
+          <sequence />
+      </complexType>
   </element>
 
   <element name="report">
-    <complexType>
-      <sequence>
-        <any processContents="skip" namespace="##other" minOccurs="1" maxOccurs="1"/>
-      </sequence>
-    </complexType>
+      <complexType>
+          <choice>
+              <element ref="dav:calendar-multiget"/>
+              <element ref="dav:free-busy-query"/>
+              <element ref="dav:calendar-query"/>
+          </choice>
+      </complexType>
   </element>
 
 </schema>

@@ -33,7 +33,9 @@ init(Req0=#{method := <<"PROPFIND">>}, State) ->
             {ok, IoBody, _} = read_body(Req0, <<"">>),
             ReqBody = binary:split(IoBody, <<"getetag">>),
             Body = case length(ReqBody) of
-                   1 -> propfind_xml(Ctag, (Username));
+                   1 -> ecalendar_xmlparse:create_response(Username, IoBody, Uri);% propfind_xml(Ctag, (Username));
+                        %{ok, F}=file:read_file("works.xml"),
+                        %F;
                    _ -> ecalendar_xmlparse:create_response(Username, IoBody, Uri)
                end,
         Req = cowboy_req:reply(207, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, Body, Req0);
