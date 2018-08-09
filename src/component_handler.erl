@@ -46,10 +46,6 @@ known_methods(Req, State) ->
 resource_exists(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
     IsExists = ets:member(calendar, Filename),
-    %IsExists = case ets:lookup(calendar, Filename) of
-                   %[] -> false;
-                   %_ -> true
-               %end,
     {IsExists, Req, State}.
 
 %% @doc Media types accepted by the server.
@@ -118,7 +114,7 @@ generate_etag(Req, State) ->
 -spec create_etag(Req :: cowboy_req:req()) -> binary().
 create_etag(Req) ->
     #{path := Path} = Req,
-    Mtime = {{2018, 8, 01}, {12, 00, 00}},
+    Mtime = erlang:localtime(),
     Length = cowboy_req:parse_header(<<"content-length">>, Req),
     Result = integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)),
     <<"\"", Result/binary, "\"">>.

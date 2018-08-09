@@ -31,8 +31,9 @@ create(Username, Password) ->
         false ->
             filelib:ensure_dir(<<"data/", Username/binary, "/">>),
             {ok, OpenedFile} = file:open(<<"Auth">>, [append, binary]),
-            file:write(OpenedFile, <<Username/binary, ":", Password/binary, "\n">>),
-            ets:insert(authorization, {Username, Password}),
+            PasswordEncoded = base64:encode(<<Username/binary, ":", Password/binary>>),
+            file:write(OpenedFile, <<Username/binary, ":", PasswordEncoded/binary, "\n">>),
+            ets:insert(authorization, {Username, PasswordEncoded}),
             io:format("~n"),
             io:format(<<Username/binary, " user created~n">>),
             {ok, <<Username/binary, " user created">>}
@@ -52,14 +53,11 @@ delete(Username) ->
                           end, Filenames),
             file:del_dir(<<"data/", Username/binary>>),
             ets:delete(authorization, Username),
-            
-            %% ets iteration to binary and delete+make new Auth.
             AuthData = create_auth_data(),
             file:delete(<<"Auth">>),
             {ok, OpenedFile} = file:open(<<"Auth">>, [write, read, binary]),
             file:write(OpenedFile, AuthData),
             file:close(OpenedFile),
-            
             io:format(<<Username/binary, "  user deleted~n">>),
             {ok, <<Username/binary, "  deleted">>};
         false ->
@@ -75,7 +73,6 @@ create_auth_data() ->
     create_auth_data(ets:first(authorization), <<"">>).
 
 create_auth_data('$end_of_table', Acc) ->
-    io:format(Acc),
     Acc;
 
 create_auth_data(Username, Acc) ->

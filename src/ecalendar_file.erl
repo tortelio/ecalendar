@@ -69,12 +69,10 @@ load_calendar_data() ->
                                                 Uri = <<"http://localhost:8080/", DirnameBin/binary, "/calendar/", Filename/binary>>,
                                                 Etag2 = string:tokens(erlang:binary_to_list(Etag1), "\n"),
                                                 Etag = list_to_binary(Etag2),
-                                                %ets:insert(Dirname, {Filename, [Data, Etag, Uri]}),
                                                 ets:insert(calendar, {Filename, [Data, Etag, Uri, Dirname2]})
                                         end, Filenames)
                   end, UsersDirs),
-    io:format("LOADING FINISHED~n"),
-    ets:i().
+    io:format("LOADING FINISHED~n").
 
 %% @doc Load the stored authentication data into an ets.
 load_authorization_data() ->
