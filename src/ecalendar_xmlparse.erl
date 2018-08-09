@@ -15,14 +15,17 @@
 %%====================================================================
 
 create_response(Username, RequestBody, UserURI) ->
-    {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd", [{include_files, [{"urn:ietf:params:xml:ns:caldav", "C", "http://calendarserver.org/ns/"}]}]),
+    {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd",
+                                          [{include_files,
+                                            [{"urn:ietf:params:xml:ns:caldav", "C", "priv/ns2.xsd"},
+                                             {"DAV:", "D", "priv/caldav.xsd"}]}]),
     RequestList = parse_request(RequestBody, Model),
     io:format("~p~n", [Model]),
     Response = get_requested_data(Username, UserURI, RequestList),
-    %io:format("~p~n", [Response]),
+    io:format("~p~n", [Response]),
     {ok, OutPut} = erlsom:write(Response, Model),
     OutBin = binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]),
-    file:write_file("Ki.xml", OutBin),
+    %file:write_file("Ki.xml", OutBin),
     OutBin.
     %<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", OutBin/binary>>.
 
@@ -64,7 +67,7 @@ create_response_body([ReqForm | Rest], CalUser, CalUri) ->
                 _ ->
                     get_propfind(Rest, UserList, CalUri)
             end;
-        'calendar-multiget' ->
+        'C:calendar-multiget' ->
             get_event_responses(UserList, [], report)
     end.
 
@@ -113,7 +116,7 @@ create_prop_body([CurrentProp | Rest], ReqList, Pos, Acc) ->
 get_element(Element) ->
     case Element of
         resourcetype ->
-            {resourcetype, [], {collection, []}, {calendar, []}, []};
+            {resourcetype, [], {collection, []}, {'C:calendar', []}, []};
         _ ->
             undefined
     end.
@@ -128,9 +131,9 @@ get_ctag_response(CalUser, CalURI) ->
     [{response, [], ShortURI, [{propstat, [], PropBody, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined}].
 ctag_prop_body(User, Uri) ->
     Ctag = create_ctag(User),
-    SuppComp = {'supported-calendar-component-set', [], [{comp, [], "VEVENT"}]},
+    SuppComp = {'C:supported-calendar-component-set', [], [{'C:comp', [], "VEVENT"}]},
     SuppReports = get_reports(['calendar-multiget', 'calendar-query', 'free-busy-query'], []),
-    {prop, [], {resourcetype, [], {collection, []}, {'calendar', []}, []}, {owner, [], binary:bin_to_list(Uri)},
+    {prop, [], {resourcetype, [], {collection, []}, {'C:calendar', []}, []}, {owner, [], binary:bin_to_list(Uri)},
      {'current-user-principal',[], binary:bin_to_list(Uri)}, {'supported-report-set', [], SuppReports, []},
      SuppComp, undefined, undefined, undefined, undefined, undefined, undefined, Ctag}.
 

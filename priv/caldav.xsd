@@ -5,6 +5,7 @@
     xmlns:xsd="http://www.w3.org/2001/XMLSchema"
     elementFormDefault="qualified"
     targetNamespace="DAV:">
+    <import namespace="urn:ietf:params:xml:ns:caldav" schemaLocation="ns2.xsd"/>
     <element name="calendar-multiget" nillable="true">
         <complexType>
             <sequence>
@@ -39,13 +40,13 @@
                 <element ref="dav:owner" minOccurs="0"/>
                 <element ref="dav:current-user-principal" minOccurs="0"/>
                 <element ref="dav:supported-report-set" minOccurs="0"/>
-                <element ref="dav:supported-calendar-component-set" minOccurs="0"/>
+                <element ref="C:supported-calendar-component-set" minOccurs="0"/>
                 <element ref="dav:getcontentlength" minOccurs="0"/>
                 <element ref="dav:getcontenttype" minOccurs="0"/>
                 <element ref="dav:getetag" minOccurs="0"/>
                 <element ref="dav:getlastmodified" minOccurs="0"/>
                 <element ref="dav:quota-available-bytes" minOccurs="0"/>
-                <element ref="dav:calendar-data" minOccurs="0"/>
+                <element ref="C:calendar-data" minOccurs="0"/>
                 <element ref="dav:getctag" minOccurs="0"/>
             </all>
         </complexType>
@@ -111,7 +112,7 @@
 
     <element name="getetag" type="xsd:string" />
 
-    <element name="getctag" type="xsd:String" />
+    <element name="getctag" type="xsd:string" />
 
     <element name="resourcetype">
         <complexType>

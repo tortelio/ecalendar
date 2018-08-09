@@ -26,14 +26,15 @@
 init(Req0=#{method := <<"PROPFIND">>}, State) ->
     Username = cowboy_req:binding(username, Req0),
     IsUser = filelib:is_dir(<<"data/", Username/binary>>),
-    case IsUser of 
+    case IsUser of
         true ->
             Ctag = create_ctag(Username),
             Uri = iolist_to_binary(cowboy_req:uri(Req0)),
             {ok, IoBody, _} = read_body(Req0, <<"">>),
             ReqBody = binary:split(IoBody, <<"getetag">>),
             Body = case length(ReqBody) of
-                   1 -> ecalendar_xmlparse:create_response(Username, IoBody, Uri);% propfind_xml(Ctag, (Username));
+                   1 -> ecalendar_xmlparse:create_response(Username, IoBody, Uri);
+                        %propfind_xml(Ctag, (Username));
                         %{ok, F}=file:read_file("works.xml"),
                         %F;
                    _ -> ecalendar_xmlparse:create_response(Username, IoBody, Uri)
