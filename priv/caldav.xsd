@@ -52,7 +52,7 @@
         </complexType>
     </element>
 
-    <element name="calendar-data" type="xsd:string" />
+    <element name="calendar-data" type="string" />
 
     <element name="supported-calendar-component-set">
         <complexType mixed="true">
@@ -63,12 +63,8 @@
     </element>
 
     <complexType name="comp">
-        <attribute name="name" type="xsd:string" />
+        <attribute name="name" type="string" />
     </complexType>
-    <!--
-    <element name="calendar">
-        <complexType />
-    </element>-->
 
     <element name="multistatus">
         <complexType>
@@ -108,11 +104,11 @@
         </complexType>
     </element>
 
-    <element name="getcontenttype" type="xsd:string" />
+    <element name="getcontenttype" type="string" />
 
-    <element name="getetag" type="xsd:string" />
+    <element name="getetag" type="string" />
 
-    <element name="getctag" type="xsd:string" />
+    <element name="getctag" type="string" />
 
     <element name="resourcetype">
         <complexType>
@@ -141,11 +137,11 @@
         </complexType>
     </element>
 
-    <element name="status" type="xsd:string"/>
+    <element name="status" type="string"/>
 
     <element name="sync-token" type="anyURI"/>
 
-    <element name="href" type="xsd:string"/>
+    <element name="href" type="string"/>
 
     <element name="propstat">
         <complexType>
@@ -158,7 +154,7 @@
         </complexType>
     </element>
 
-    <element name="responsedescription" type="xsd:string"/>
+    <element name="responsedescription" type="string"/>
 
     <element name="location">
         <complexType>
@@ -183,12 +179,6 @@
   <element name="free-busy-query">
     <complexType/>
   </element>
-<!--
-  <element name="calendar-multiget">
-    <complexType mixed="true">
-      <sequence/>
-    </complexType>
-</element>-->
 
   <element name="displayname">
     <complexType mixed="true">

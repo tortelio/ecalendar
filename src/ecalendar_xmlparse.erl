@@ -14,20 +14,16 @@
 %% API
 %%====================================================================
 
+%% @doc Creates the XML response for the request
 create_response(Username, RequestBody, UserURI) ->
     {ok, Model} = erlsom:compile_xsd_file("priv/caldav.xsd",
                                           [{include_files,
                                             [{"urn:ietf:params:xml:ns:caldav", "C", "priv/ns2.xsd"},
                                              {"DAV:", "D", "priv/caldav.xsd"}]}]),
     RequestList = parse_request(RequestBody, Model),
-    io:format("~p~n", [Model]),
     Response = get_requested_data(Username, UserURI, RequestList),
-    io:format("~p~n", [Response]),
     {ok, OutPut} = erlsom:write(Response, Model),
-    OutBin = binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]),
-    %file:write_file("Ki.xml", OutBin),
-    OutBin.
-    %<<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n", OutBin/binary>>.
+    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
 
 %%====================================================================
 %% Internal functions
@@ -37,11 +33,13 @@ parse_request(InputXML, Model) ->
     {ok, Result} = erlsom:parse(InputXML, Model),
     get_requested_elements(Result).
 
+%% @doc Creates a list containing the requested elements
 get_requested_elements(Request) ->
     List = tuple_to_list(Request),
     Filtered = lists:map(fun(L) -> filterfunction(L) end, List),
     lists:flatten(Filtered).
 
+%% @doc Function used to filter the parsed request XML
 filterfunction(undefined) ->
     [];
 
@@ -53,10 +51,12 @@ filterfunction(Elem) ->
             get_requested_elements(Elem)
     end.
 
+%% @doc Creates the response
 get_requested_data(Cal, Uri, ReqList) ->
     ResponseBody = create_response_body(ReqList, Cal, Uri),
     {multistatus, [], ResponseBody, undefined, undefined}.
 
+%% @doc Creates the body for the response based on the request list
 create_response_body([ReqForm | Rest], CalUser, CalUri) ->
     UserList = ets:match_object(calendar, {'_', ['_', '_', '_', CalUser]}),
     case ReqForm of
@@ -77,6 +77,7 @@ get_propfind(ReqList, UserList, Uri) ->
     [{response, [], Uri, [{propstat, [], CalPropBody,  "HTTP/1.1 200 OK", undefined, undefined}],
       undefined, undefined, undefined} | EventData].
 
+%% @doc Collects the details of the events
 get_event_responses([], Acc, _) ->
     Acc;
 
@@ -125,6 +126,7 @@ create_event_prop(CalBody, ContType, Etag) ->
     {prop, [], undefined, undefined, undefined, undefined, undefined,
      undefined, ContType, Etag, undefined, undefined, CalBody, undefined}.
 
+%% @doc Creates a response for the ctag request
 get_ctag_response(CalUser, CalURI) ->
     ShortURI = <<CalUser/binary, "/calendar/">>,
     PropBody = ctag_prop_body(CalUser, CalURI),
@@ -137,6 +139,7 @@ ctag_prop_body(User, Uri) ->
      {'current-user-principal',[], binary:bin_to_list(Uri)}, {'supported-report-set', [], SuppReports, []},
      SuppComp, undefined, undefined, undefined, undefined, undefined, undefined, Ctag}.
 
+%% @doc Collects the supported reports
 get_reports([], Acc) ->
     lists:reverse(Acc);
 
