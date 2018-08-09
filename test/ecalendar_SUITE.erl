@@ -36,7 +36,7 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
-ecalendar_user:create(<<"jozsi">>, <<"am96c2k6cGFzc3dvcmQ=">>),
+ecalendar_user:create(<<"jozsi">>, <<"password">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
@@ -54,7 +54,7 @@ ecalendar_user:delete(<<"jozsi">>),
 %% @doc Create a not existing user.
 create_new_user(Config) ->
     ?assertEqual(false, ecalendar_user:exists(<<"mari">>)),
-    {ok, _} = ecalendar_user:create(<<"mari">>, <<"bWFyaTpwYXNzd29yZA==">>),
+    {ok, _} = ecalendar_user:create(<<"mari">>, <<"password">>),
 
     ?assertEqual(true, ecalendar_user:exists(<<"mari">>)),
 
@@ -63,7 +63,7 @@ create_new_user(Config) ->
 %% @doc Create an existing user.
 create_existing_user(Config) ->
     ?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
-    {error, _} = ecalendar_user:create(<<"jozsi">>, <<"am96c2k6cGFzc3dvcmQ=">>),
+    {error, _} = ecalendar_user:create(<<"jozsi">>, <<"password">>),
 
     ok.
 
@@ -76,7 +76,7 @@ delete_not_existing_user(Config) ->
 
 %% @doc Delete an existing user.
 delete_existing_user(Config) ->
-    {ok, _} = ecalendar_user:create(<<"janos">>, <<"amFub3M6cGFzc3dvcmQ=">>),
+    {ok, _} = ecalendar_user:create(<<"janos">>, <<"password">>),
     ?assertEqual(true, ecalendar_user:exists(<<"janos">>)),
 
     {ok, OpenedFile} = file:open(<<"data/janos/event.ics">>, [write, binary]),
