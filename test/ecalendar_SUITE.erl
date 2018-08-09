@@ -21,7 +21,7 @@ all() -> [get_calendar,
 %%------------------------------------------------------------------------------
 
 init_per_suite(Config) ->
-filelib:ensure_dir("data/jozsi/"),
+    filelib:ensure_dir("data/jozsi/"),
     {ok, _} = application:ensure_all_started(ecalendar),
     {ok, _} = application:ensure_all_started(gun),
     Config.
@@ -36,13 +36,13 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
-ecalendar_user:create(<<"jozsi">>, <<"password">>),
+    ecalendar_user:create(<<"jozsi">>, <<"password">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
 
 end_per_testcase(_, Config1) ->
-ecalendar_user:delete(<<"jozsi">>),
+    ecalendar_user:delete(<<"jozsi">>),
     _Config2 = ecalendar_test:teardown_http_connection(Config1),
 
     ok.

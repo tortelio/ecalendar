@@ -48,12 +48,12 @@ get_report_request(Filename) ->
 
 get_etag_of_event(EventName) ->
     case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
-    [{EventName, [_, Etag, _, _]}] -> Etag;
-    _ -> error
+        [{EventName, [_, Etag, _, _]}] -> Etag;
+        _ -> error
     end.
 
 is_event_in_database(EventName) ->
     case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
-    [] -> false;
-    _ -> true
+        [] -> false;
+        _ -> true
     end.
