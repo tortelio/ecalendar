@@ -38,8 +38,12 @@ user_exists(Username) ->
     ets:member(authorization, Username).
 
 find(Username) ->
-    [{Username, EncodedPW}] = ets:lookup(authorization, Username),
-    binary:split(base64:decode(EncodedPW), <<":">>).
+    case ets:lookup(authorization, Username) of
+        [{Username, EncodedPW}] ->
+            binary:split(base64:decode(EncodedPW), <<":">>);
+        _ ->
+            []
+    end.
 
 add(Username, Password) ->
     case find(Username) of
@@ -86,7 +90,7 @@ create_auth_data(Username, Acc) ->
     create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", PassHash/binary, "\n">>).
 
 encode_credentials(Username, Password) ->
-    code64:encode(<<Username/binary, ":", Password/binary>>).
+    base64:encode(<<Username/binary, ":", Password/binary>>).
 
 get_htpasswd_path() ->
     filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]).
