@@ -54,32 +54,46 @@ load_calendar_data() ->
     io:format("All users: "),
     io:format(UsersDirs),
     io:format("~n"),
-    lists:foreach(fun(Dirname1) ->
-                          Dirname2 = binary:list_to_bin(Dirname1),
-                          Dirname = binary_to_atom(Dirname2, utf8),
-                          io:format(<<"Creating ", Dirname2/binary, "'s calendar~n">>),
-                          {ok, Filenames} = file:list_dir(<<"data/", Dirname2/binary, "/">>),
-                          lists:foreach(fun(Filename1) ->
-                                                io:format("...~n"),
-                                                Filename = binary:list_to_bin(Filename1),
-                                                {ok, OpenedFile} = file:open(<<"data/", Dirname2/binary, "/", Filename/binary>>, [read, binary]),
-                                                {ok, Etag1} = file:read_line(OpenedFile),
-                                                Data = read_rest(OpenedFile, file:read_line(OpenedFile), <<"">>),
-                                                DirnameBin = atom_to_binary(Dirname, utf8),
-                                                Uri = <<"http://localhost:8080/", DirnameBin/binary, "/calendar/", Filename/binary>>,
-                                                Etag2 = string:tokens(erlang:binary_to_list(Etag1), "\n"),
-                                                Etag = list_to_binary(Etag2),
-                                                ets:insert(calendar, {Filename, [Data, Etag, Uri, Dirname2]})
-                                        end, Filenames)
-                  end, UsersDirs),
+
+    ok = load_calendars([filename:join([BaseDir, D]) || D <- UsersDirs]),
+
     io:format("LOADING FINISHED~n").
 
-%% @doc Load the stored authentication data into an ets.
-load_authorization_data() ->
-    {ok, OpenedFile} = file:open(<<"Auth">>, [read, write, binary]),
-    ok = load_user_auth(OpenedFile, file:read_line(OpenedFile)).
-    
-    
+load_calendars([]) ->
+    ok;
+load_calendars([Directory | Directories]) ->
+    ok = load_calendar(Directory),
+    load_calendars(Directorties).
+
+load_calendar(Directory) ->
+    {ok, Filenames} = file:list_dir(Directory),
+
+    Username = filename:basename(Directory),
+
+    ok = load_files(Username, [filename:join([Directory, Fn]) || Fn <- Filenames]),
+    ok.
+
+load_files(_, []) ->
+    ok;
+load_files(Username, [Path | Paths]) ->
+    ok = load_file(Username, Path),
+    load_files(Username, Paths).
+
+load_file(Username, Path) ->
+    Resource = filename:basename(Path),
+    {ok, FD} = file:open(Path, [read, binary]),
+
+    {ok, Etag1} = file:read_line(FD),
+
+    Data = read_rest(OpenedFile, file:read_line(OpenedFile), <<"">>),
+
+    Uri = <<"/", Username/binary, "/calendar/", Resource/binary>>,
+
+    Etag2 = string:tokens(erlang:binary_to_list(Etag1), "\n"),
+    Etag = list_to_binary(Etag2),
+    ets:insert(calendar, {Filename, [Data, Etag, Uri, User]})
+
+    ok.
 
 %%====================================================================
 %% Internal functions
@@ -101,14 +115,3 @@ read_rest(OpenedFile, CurrentLine, Acc) ->
         {ok, Data} ->
             read_rest(OpenedFile, file:read_line(OpenedFile), <<Acc/binary, Data/binary>>)
     end.
-
-load_user_auth(OpenedFile, CurrentLine) ->
-    case CurrentLine of 
-        eof ->
-            file:close(OpenedFile),
-            ok;
-        {ok, Data} ->
-            [User, Password] = binary:split(Data, <<":">>),
-            ets:insert(authorization, {User, Password}),
-            load_user_auth(OpenedFile, file:read_line(OpenedFile))
-        end.
