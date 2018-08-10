@@ -25,10 +25,10 @@ init(Req0 = #{method := <<"OPTIONS">>}, Opts) ->
 
 %% @doc Handles the PROPFIND requests
 init(Req0 = #{method := <<"PROPFIND">>}, State) ->
-    Auth = case is_authorized(Req, State) of
-               {true, Req, State} ->
+    Auth = case is_authorized(Req0, State) of
+               {true, Req0, State} ->
                    true;
-               {{false, Realm}, Req, State} ->
+               {{false, Realm}, Req0, State} ->
                    false
            end,
     Username = cowboy_req:binding(username, Req0),
@@ -55,10 +55,10 @@ init(Req0 = #{method := <<"PROPFIND">>}, State) ->
 
 %% @doc Handles the REPORT requests
 init(Req0 = #{method := <<"REPORT">>}, State) ->
-    Auth = case is_authorized(Req, State) of
-               {true, Req, State} ->
+    Auth = case is_authorized(Req0, State) of
+               {true, Req0, State} ->
                    true;
-               {{false, Realm}, Req, State} ->
+               {{false, Realm}, Req0, State} ->
                    false
            end,
     Username = cowboy_req:binding(username, Req0),

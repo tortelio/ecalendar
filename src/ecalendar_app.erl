@@ -32,10 +32,9 @@ start(_StartType, _StartArgs) ->
     % Start database
     ok = ecalendar_db:start(),
 
-    % Load data
-    ecalendar_file:load_authorization_data(),
-    ecalendar_file:load_calendar_data(),
-
+    %% Load data
+    %ecalendar_file:load_authorization_data(),
+    %ecalendar_file:load_calendar_data(),
     ecalendar_sup:start_link().
 
 %%--------------------------------------------------------------------

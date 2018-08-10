@@ -24,12 +24,12 @@
 %%====================================================================
 
 start() ->
-    ok = ecalendar_db_credentials:start(),
+    ok = ecalendar_db_credential:start(),
     ok = ecalendar_db_calendar:start(),
     ok.
 
 authenticate_user(Username, Password) ->
-    case ecalendar_db_credentials:find(Username) of
+    case ecalendar_db_credential:find(Username) of
         [{Username, Password}] ->
             true;
         [{Username, _}] ->
@@ -54,4 +54,4 @@ get_user_list(Username) ->
     ecalendar_db_calendar:get_user_components(Username).
 
 user_exists(Username) ->
-    ecalendar_db_credentials:user_exists(Username).
+    ecalendar_db_credential:user_exists(Username).

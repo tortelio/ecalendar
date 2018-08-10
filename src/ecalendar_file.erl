@@ -3,6 +3,7 @@
 %%%-------------------------------------------------------------------
 
 -module(ecalendar_file).
+-include("ecalendar.hrl").
 
 %%====================================================================
 %% Exports
@@ -12,8 +13,7 @@
 -export([save_ets_data/1,
          write_to_file/2,
          delete_file/2,
-         load_calendar_data/0,
-         load_authorization_data/0]).
+         load_calendar_data/0]).
 
 %%====================================================================
 %% API
@@ -55,6 +55,7 @@ load_calendar_data() ->
     io:format(UsersDirs),
     io:format("~n"),
 
+    BaseDir = code:priv_dir(?APPLICATION),
     ok = load_calendars([filename:join([BaseDir, D]) || D <- UsersDirs]),
 
     io:format("LOADING FINISHED~n").
@@ -63,7 +64,7 @@ load_calendars([]) ->
     ok;
 load_calendars([Directory | Directories]) ->
     ok = load_calendar(Directory),
-    load_calendars(Directorties).
+    load_calendars(Directories).
 
 load_calendar(Directory) ->
     {ok, Filenames} = file:list_dir(Directory),
@@ -80,18 +81,18 @@ load_files(Username, [Path | Paths]) ->
     load_files(Username, Paths).
 
 load_file(Username, Path) ->
-    Resource = filename:basename(Path),
-    {ok, FD} = file:open(Path, [read, binary]),
+    Filename = filename:basename(Path),
+    {ok, OpenedFile} = file:open(Path, [read, binary]),
 
-    {ok, Etag1} = file:read_line(FD),
+    {ok, Etag1} = file:read_line(OpenedFile),
 
     Data = read_rest(OpenedFile, file:read_line(OpenedFile), <<"">>),
 
-    Uri = <<"/", Username/binary, "/calendar/", Resource/binary>>,
+    Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
 
     Etag2 = string:tokens(erlang:binary_to_list(Etag1), "\n"),
     Etag = list_to_binary(Etag2),
-    ets:insert(calendar, {Filename, [Data, Etag, Uri, User]})
+    ets:insert(calendar, {Filename, [Data, Etag, Uri, Username]}),
 
     ok.
 

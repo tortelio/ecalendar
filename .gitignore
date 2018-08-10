@@ -16,5 +16,5 @@ _build
 .idea
 *.iml
 rebar3.crashdump
-data/
-Auth
+priv/data/
+priv/.htpasswd

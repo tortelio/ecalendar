@@ -133,4 +133,4 @@ handle_request(<<"PUT">>, Req) ->
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ecalendar_db:insert_event_into_db(Filename, [Body2, Etag, Uri, Username]),
-    {201, <<"CREATED">>};
+    {201, <<"CREATED">>}.

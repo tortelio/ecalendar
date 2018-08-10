@@ -2,8 +2,9 @@
 %%% @doc The header of ecalendar_app
 %%% ----------------------------------------------------------------------------
 
--ifndef(ecalendar.hrl).
--define(ecalendar_hrl,true).
+-ifndef(ecalendar_hrl).
+-define(ecalendar_hrl, true).
+-define(APPLICATION, ecalendar).
 
 %%%=============================================================================
 %%% Types
@@ -16,3 +17,4 @@
 
 
 
+-endif.
