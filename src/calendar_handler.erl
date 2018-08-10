@@ -25,33 +25,60 @@ init(Req0 = #{method := <<"OPTIONS">>}, Opts) ->
 
 %% @doc Handles the PROPFIND requests
 init(Req0 = #{method := <<"PROPFIND">>}, State) ->
-    case is_authorized(Req, State) of
-        {true, Req, State} ->
-            x;
-        {{false, Realm}, Req, State} ->
-            y
-    end;
-
-%TODO = #{method := <<"REPORT">>}
-
-init(Req0, State) ->
-
+    Auth = case is_authorized(Req, State) of
+               {true, Req, State} ->
+                   true;
+               {{false, Realm}, Req, State} ->
+                   false
+           end,
     Username = cowboy_req:binding(username, Req0),
-    IsUser = filelib:is_dir(<<"data/", Username/binary>>),
-    {RespCode, RespBody} = case IsUser of
+    IsUser = ecalendar_db:user_exists(Username),
+    {RespCode, RespBody} = case Auth and IsUser of
                                true ->
                                    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
                                    {ok, ReqBody, _} = read_body(Req0, <<"">>),
                                    Resp = ecalendar_xmlparse:create_response(Username, ReqBody, Uri),
                                    {207, Resp};
                                false ->
-                                   Body = <<"NOT REGISTERED USER">>,
-                                   {412, Body}
+                                   case Auth of
+                                       true ->
+                                           Body = <<"NOT REGISTERED USER">>,
+                                           {412, Body};
+                                       false ->
+                                           {401, <<"">>}
+                                   end
                            end,
+    Req = cowboy_req:reply(RespCode, #{}, RespBody, Req0),
+    {ok, Req, State};
 
-    % TODO: is this necessery ???
-    Req = cowboy_req:reply(RespCode, #{<<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>}, RespBody, Req0),
+%% <<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>
 
+%% @doc Handles the REPORT requests
+init(Req0 = #{method := <<"REPORT">>}, State) ->
+    Auth = case is_authorized(Req, State) of
+               {true, Req, State} ->
+                   true;
+               {{false, Realm}, Req, State} ->
+                   false
+           end,
+    Username = cowboy_req:binding(username, Req0),
+    IsUser = ecalendar_db:user_exists(Username),
+    {RespCode, RespBody} = case Auth and IsUser of
+                               true ->
+                                   Uri = iolist_to_binary(cowboy_req:uri(Req0)),
+                                   {ok, ReqBody, _} = read_body(Req0, <<"">>),
+                                   Resp = ecalendar_xmlparse:create_response(Username, ReqBody, Uri),
+                                   {207, Resp};
+                               false ->
+                                   case Auth of
+                                       true ->
+                                           Body = <<"NOT REGISTERED USER">>,
+                                           {412, Body};
+                                       false ->
+                                           {401, <<"">>}
+                                   end
+                           end,
+    Req = cowboy_req:reply(RespCode, #{}, RespBody, Req0),
     {ok, Req, State}.
 
 %% @doc Set the known http methods for this handler.
@@ -72,7 +99,7 @@ is_authorized(Req, State) ->
     Username = cowboy_req:binding(username, Req),
     case cowboy_req:parse_header(<<"authorization">>, Req, undefined) of
         {basic, Username, Password} ->
-            case authenticate(Username, Password) of
+            case ecalendar_db:authenticate_user(Username, Password) of
                 true ->
                     {true, Req, State};
                 false ->
@@ -81,16 +108,6 @@ is_authorized(Req, State) ->
         undefined ->
             {{false, realm()}, Req, State}
     end.
-
-authenticate(Username, Password) ->
-    case ets:lookup(authorization, Username) of
-        [{Username, Password}] ->
-            true;
-        [{Username, _}] ->
-            false;
-        [] ->
-            false
-    end
 
 %%====================================================================
 %% Internal functions

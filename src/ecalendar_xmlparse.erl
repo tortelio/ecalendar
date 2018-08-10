@@ -60,7 +60,7 @@ get_requested_data(Cal, Uri, ReqList) ->
 
 %% @doc Creates the body for the response based on the request list
 create_response_body([ReqForm | Rest], CalUser, CalUri) ->
-    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', CalUser]}),
+    UserList = get_user_list(CalUser),
     case ReqForm of
         propfind ->
             case lists:member(resourcetype, Rest) =:= false or lists:member('supported-report-set', Rest) of
@@ -152,7 +152,7 @@ get_reports([Current | Rest], Acc) ->
 %% @doc Concatenate all of the etags from the ets and then creates the Ctag for the calendar
 -spec create_ctag(Username :: binary()) -> binary().
 create_ctag(Username) ->
-    UserList = ets:match_object(calendar, {'_', ['_', '_', '_', Username]}),
+    UserList = get_user_list(Username),
     create_ctag(UserList, <<"">>).
 
 -spec create_ctag([], Username :: binary()) -> binary().
