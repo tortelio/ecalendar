@@ -15,7 +15,8 @@
          add_component/2,
          get_component/1,
          get_user_components/1,
-         delete_data/2]).
+         delete_data/2,
+         delete_user_calendar/1]).
 
 %%====================================================================
 %% API
@@ -69,6 +70,21 @@ delete_data(Username, Filename) ->
     file:delete(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>, Filename])),
     ets:delete(calendar, Filename),
     io:format("EVENT DELETED~n").
+
+delete_user_calendar(Username) ->
+    io:format("Deleting user~n"),
+    BaseDir = code:priv_dir(?APPLICATION),
+    {ok, Filenames} = file:list_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
+    lists:foreach(fun(Filename1) ->
+                          io:format("...~n"),
+                          Filename2 = binary:list_to_bin(Filename1),
+                          delete_data(Username, Filename2)
+                  end, Filenames),
+    file:del_dir(filename:basename(Filenames)),
+    file:del_dir(filename:basename(filename:basename(Filenames))),
+    io:format(<<Username/binary, " user deleted~n">>),
+    {ok, <<Username/binary, " deleted">>}.
+
 
 %%====================================================================
 %% Internal functions
