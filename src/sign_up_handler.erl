@@ -33,7 +33,7 @@ init(Req0=#{method := <<"POST">>}, State) ->
                     Body = <<"Missing password header">>,
                     Req = cowboy_req:reply(400, #{}, Body, Req0);
                 _ ->
-                    {_, Body} = ecalendar_user:create(Username, Password),
+                    {_, Body} = ecalendar_db:create_user(Username, Password),
                     Req = cowboy_req:reply(200, #{}, Body, Req0)
             end
     end,

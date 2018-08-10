@@ -10,13 +10,14 @@
 
 %% API
 -export([start/0,
-        authenticate_user/2,
-        delete_event/2,
-        insert_event_into_db/2,
-        event_exists/1,
-        get_value/1,
-        get_user_list/1,
-        user_exists/1
+         create_user/2,
+         authenticate_user/2,
+         delete_event/2,
+         insert_event_into_db/2,
+         event_exists/1,
+         get_value/1,
+         get_user_list/1,
+         user_exists/1
         ]).
 
 %%====================================================================
@@ -27,6 +28,15 @@ start() ->
     ok = ecalendar_db_credential:start(),
     ok = ecalendar_db_calendar:start(),
     ok.
+
+create_user(Username, Password) ->
+    case ecalendar_db_credential:add(Username, Password) of
+        {ok, _} ->
+            ecalendar_db_calendar:add_new_user_calendar(Username),
+            {ok, <<Username/binary, " user created">>};
+        _ ->
+            {error, "Error"}
+    end.
 
 authenticate_user(Username, Password) ->
     case ecalendar_db_credential:find(Username) of
