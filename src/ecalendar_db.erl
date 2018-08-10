@@ -30,9 +30,9 @@ start() ->
 
 authenticate_user(Username, Password) ->
     case ecalendar_db_credential:find(Username) of
-        [{Username, Password}] ->
+        [Username, Password] ->
             true;
-        [{Username, _}] ->
+        [Username | _] ->
             false;
         [] ->
             false

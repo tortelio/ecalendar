@@ -38,7 +38,8 @@ user_exists(Username) ->
     ets:member(authorization, Username).
 
 find(Username) ->
-    ets:lookup(authorization, Username).
+    [{Username, EncodedPW}] = ets:lookup(authorization, Username),
+    binary:split(base64:decode(EncodedPW), <<":">>).
 
 add(Username, Password) ->
     case find(Username) of
@@ -84,7 +85,6 @@ create_auth_data(Username, Acc) ->
     [{Username, PassHash}] = ets:lookup(authorization, Username),
     create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", PassHash/binary, "\n">>).
 
-
 encode_credentials(Username, Password) ->
     code64:encode(<<Username/binary, ":", Password/binary>>).
 
@@ -115,7 +115,9 @@ read_user_credentials(FD, Credentials) ->
     end.
 
 parse_user_credential(Line) ->
-    [User, Password] = binary:split(Line, <<":">>),
+    Line2 = string:tokens(erlang:binary_to_list(Line), "\n"),
+    Line3 = list_to_binary(Line2),
+    [User, Password] = binary:split(Line3, <<":">>),
     {User, Password}.
 
 save(Credentials) when is_list(Credentials) ->
