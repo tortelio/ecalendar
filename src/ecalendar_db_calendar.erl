@@ -67,6 +67,7 @@ delete_data(Username, Filename) ->
     io:format(Filename),
     io:format("~n"),
     file:delete(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>, Filename])),
+    ets:delete(calendar, Filename),
     io:format("EVENT DELETED~n").
 
 %%====================================================================
@@ -149,7 +150,7 @@ read_rest(OpenedFile, CurrentLine, Acc) ->
 write_to_file(User, Key) ->
     io:format("SAVING EVENT TO FILE~n"),
     BaseDir = code:priv_dir(?APPLICATION),
-    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/">>, User, Key]), [write, read, binary]),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data">>, User, <<"calendar">>, Key]), [write, read, binary]),
     [{Key, CalendarList} | _] = ets:lookup(calendar, Key),
     ComponentData = lists:nth(1, CalendarList),
     ComponentEtag = lists:nth(2, CalendarList),
