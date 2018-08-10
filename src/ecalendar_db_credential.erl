@@ -12,10 +12,10 @@
 
 %% API
 -export([start/0,
-user_exists/1,
-find/1,
-add/2,
-delete/1]).
+         user_exists/1,
+         find/1,
+         add/2,
+         delete/1]).
 
 %%====================================================================
 %% API

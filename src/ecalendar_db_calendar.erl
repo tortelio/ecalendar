@@ -11,11 +11,11 @@
 
 %% API
 -export([start/0,
-is_exists/1,
-add_component/2,
-get_component/1,
-get_user_components/1,
-delete_data/2]).
+         is_exists/1,
+         add_component/2,
+         get_component/1,
+         get_user_components/1,
+         delete_data/2]).
 
 %%====================================================================
 %% API
@@ -25,7 +25,7 @@ start() ->
     ets:new(calendar, [set, named_table, public]),
 
     % TODO move from ecalendar_file the corresponding parts here
-    
+
     ok = load(),
 
     ok.
@@ -57,7 +57,7 @@ add_component(Filename, Value) ->
 add_new_user_calendar(Username) ->
     BaseDir = code:priv_dir(?APPLICATION),
     file:ensure_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])).
-    
+
 %% @doc Delete the specified calendar component file.
 delete_data(Username, Filename) ->
     BaseDir = code:priv_dir(?APPLICATION),
