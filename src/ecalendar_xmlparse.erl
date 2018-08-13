@@ -8,7 +8,8 @@
 %% Exports
 %%====================================================================
 
--export([create_response/3]).
+-export([create_response/3,
+         skip_auth/1]).
 
 %%====================================================================
 %% API
@@ -16,20 +17,35 @@
 
 %% @doc Creates the XML response for the request
 create_response(Username, RequestBody, UserURI) ->
+    Model = get_model(),
+    %PrivDir = code:priv_dir(ecalendar),
+    %CalDav = lists:concat([PrivDir, "/caldav.xsd"]),
+    %{ok, Model} = erlsom:compile_xsd_file(CalDav,
+    %                                      [{include_files,
+    %                                        [{"urn:ietf:params:xml:ns:caldav", "C", lists:concat([PrivDir, "/ns2.xsd"])},
+    %                                         {"DAV:", "D", CalDav}]}]),
+    RequestList = parse_request(RequestBody, Model),
+    Response = get_requested_data(Username, UserURI, RequestList),
+    {ok, OutPut} = erlsom:write(Response, Model),
+    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
+
+skip_auth(RequestBody) ->
+    Model = get_model(),
+    RequestList = parse_request(RequestBody, Model),
+    lists:member(owner, RequestList).
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
+
+get_model() ->
     PrivDir = code:priv_dir(ecalendar),
     CalDav = lists:concat([PrivDir, "/caldav.xsd"]),
     {ok, Model} = erlsom:compile_xsd_file(CalDav,
                                           [{include_files,
                                             [{"urn:ietf:params:xml:ns:caldav", "C", lists:concat([PrivDir, "/ns2.xsd"])},
                                              {"DAV:", "D", CalDav}]}]),
-    RequestList = parse_request(RequestBody, Model),
-    Response = get_requested_data(Username, UserURI, RequestList),
-    {ok, OutPut} = erlsom:write(Response, Model),
-    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
-
-%%====================================================================
-%% Internal functions
-%%====================================================================
+    Model.
 
 parse_request(InputXML, Model) ->
     {ok, Result} = erlsom:parse(InputXML, Model),
