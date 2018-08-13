@@ -99,7 +99,7 @@ delete_resource(Req, State) ->
 -spec generate_etag(Req :: cowboy_req:req(), any()) -> {Etag :: binary(), cowboy_req:req(), any()}.
 generate_etag(Req, State) ->
     Key = cowboy_req:binding(component, Req),
-    CalendarList = ecalendar_db:get_value(Key),
+    CalendarList = ecalendar_db:get_component(Key),
     Etag = lists:nth(2, CalendarList),
     {Etag, Req, State}.
 
@@ -132,5 +132,5 @@ handle_request(<<"PUT">>, Req) ->
     Filename = cowboy_req:binding(component, Req),
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
-    ecalendar_db:insert_event_into_db(Filename, [Body2, Etag, Uri, Username]),
+    ecalendar_db:insert_event(Filename, [Body2, Etag, Uri, Username]),
     {201, <<"CREATED">>}.

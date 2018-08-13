@@ -14,9 +14,9 @@
          delete_user/1,
          authenticate_user/2,
          delete_event/2,
-         insert_event_into_db/2,
+         insert_event/2,
          event_exists/1,
-         get_value/1,
+         get_component/1,
          get_user_list/1,
          user_exists/1
         ]).
@@ -69,8 +69,8 @@ delete_event(Username, Eventname) ->
     ecalendar_db_calendar:delete_data(Username, Eventname).
 
 %% @doc Add a new event to the database.
--spec insert_event_into_db(Key :: binary(), Value :: [binary()]) -> ok.
-insert_event_into_db(Key, Value) ->
+-spec insert_event(Key :: binary(), Value :: [binary()]) -> ok.
+insert_event(Key, Value) ->
     ecalendar_db_calendar:add_component(Key, Value).
 
 %% @doc Check if an event exists or not.
@@ -79,8 +79,8 @@ event_exists(Event) ->
     ecalendar_db_calendar:is_exists(Event).
 
 %% @doc Get the specified event.
--spec get_value(Key :: binary()) -> CalendarList :: {Data :: binary(), Etag :: binary(), URI :: binary(), User :: binary()}.
-get_value(Key) ->
+-spec get_component(Key :: binary()) -> CalendarList :: {Data :: binary(), Etag :: binary(), URI :: binary(), User :: binary()}.
+get_component(Key) ->
     ecalendar_db_calendar:get_component(Key).
 
 %% @doc Get the events of a user as a list.

@@ -26,22 +26,19 @@ init(Req0 = #{method := <<"OPTIONS">>}, Opts) ->
 %% @doc Handles the PROPFIND requests
 init(Req0 = #{method := <<"PROPFIND">>}, State) ->
     {ok, ReqBody, _} = read_body(Req0, <<"">>),
-    SkipAuth = ecalendar_xmlparse:skip_auth(ReqBody),
-    %io:format("~p~n", [Test]),
+    SkipAuth = ecalendar_transform:skip_auth(ReqBody),
     Auth = case is_authorized(Req0, State) of
                {true, Req0, State} ->
                    true;
                {{false, Realm}, Req0, State} ->
                    SkipAuth
            end,
-    %Auth = true,
     Username = cowboy_req:binding(username, Req0),
     IsUser = ecalendar_db:user_exists(Username),
     {RespCode, RespBody} = case Auth and IsUser of
                                true ->
                                    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
-                                   %{ok, ReqBody, _} = read_body(Req0, <<"">>),
-                                   Resp = ecalendar_xmlparse:create_response(Username, ReqBody, Uri),
+                                   Resp = ecalendar_transform:create_response(Username, ReqBody, Uri),
                                    {207, Resp};
                                false ->
                                    case Auth of
@@ -71,7 +68,7 @@ init(Req0 = #{method := <<"REPORT">>}, State) ->
                                true ->
                                    Uri = iolist_to_binary(cowboy_req:uri(Req0)),
                                    {ok, ReqBody, _} = read_body(Req0, <<"">>),
-                                   Resp = ecalendar_xmlparse:create_response(Username, ReqBody, Uri),
+                                   Resp = ecalendar_transform:create_response(Username, ReqBody, Uri),
                                    {207, Resp};
                                false ->
                                    case Auth of
