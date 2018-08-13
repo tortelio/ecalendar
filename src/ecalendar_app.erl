@@ -31,6 +31,7 @@ start(_StartType, _StartArgs) ->
 
     % Start database
     ok = ecalendar_db:start(),
+    ok = ecalendar_xmlparse:start(),
 
     %% Load data
     %ecalendar_file:load_authorization_data(),

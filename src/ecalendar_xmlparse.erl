@@ -8,12 +8,24 @@
 %% Exports
 %%====================================================================
 
--export([create_response/3,
+-export([start/0,
+         create_response/3,
          skip_auth/1]).
 
 %%====================================================================
 %% API
 %%====================================================================
+
+start() ->
+    PrivDir = code:priv_dir(ecalendar),
+    CalDav = lists:concat([PrivDir, "/caldav.xsd"]),
+    {ok, Model} = erlsom:compile_xsd_file(CalDav,
+                                          [{include_files,
+                                            [{"urn:ietf:params:xml:ns:caldav", "C", lists:concat([PrivDir, "/ns2.xsd"])},
+                                             {"DAV:", "D", CalDav}]}]),
+    ets:new(model, [set, named_table, public]),
+    ets:insert(model, {caldav, Model}),
+    ok.
 
 %% @doc Creates the XML response for the request
 create_response(Username, RequestBody, UserURI) ->
@@ -33,12 +45,7 @@ skip_auth(RequestBody) ->
 %%====================================================================
 
 get_model() ->
-    PrivDir = code:priv_dir(ecalendar),
-    CalDav = lists:concat([PrivDir, "/caldav.xsd"]),
-    {ok, Model} = erlsom:compile_xsd_file(CalDav,
-                                          [{include_files,
-                                            [{"urn:ietf:params:xml:ns:caldav", "C", lists:concat([PrivDir, "/ns2.xsd"])},
-                                             {"DAV:", "D", CalDav}]}]),
+    [{_, Model}] = ets:lookup(model, caldav),
     Model.
 
 parse_request(InputXML, Model) ->
