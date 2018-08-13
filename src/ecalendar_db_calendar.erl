@@ -58,7 +58,7 @@ add_component(Filename, Value) ->
 %% @doc Create an empty calendar directory for the new user.
 add_new_user_calendar(Username) ->
     BaseDir = code:priv_dir(?APPLICATION),
-    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>])).
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])).
 
 %% @doc Delete the specified calendar component file.
 delete_data(Username, Filename) ->
