@@ -34,9 +34,13 @@ start() ->
 %% Exported functions
 %%====================================================================
 
+%% @doc Check for user in the authorization ets.
+-spec user_exists(Username :: binary()) -> true | false.
 user_exists(Username) ->
     ets:member(authorization, Username).
 
+%% @doc Return a user's stored authorization data.
+-spec find(Username :: binary()) -> [binary()].
 find(Username) ->
     case ets:lookup(authorization, Username) of
         [{Username, EncodedPW}] ->
@@ -45,6 +49,8 @@ find(Username) ->
             []
     end.
 
+%% @doc If username does not exists yet, add a new user to the authorization.
+-spec add(Username :: binary(), Password :: binary()) -> {ok, added} | {error, exists}.
 add(Username, Password) ->
     case find(Username) of
         [] ->
@@ -57,6 +63,8 @@ add(Username, Password) ->
             {error, exists}
     end.
 
+%% @doc Delete a user's authorization data.
+-spec delete(Username :: binary()) -> {ok, deleted} | {error, nexists}.
 delete(Username) ->
     case find(Username) of
         [] ->
@@ -71,6 +79,8 @@ delete(Username) ->
 %% Internal functions
 %%====================================================================
 
+%% @doc Save the authorization ets data into a file.
+-spec save_auth_data_to_file() -> ok.
 save_auth_data_to_file() ->
     AuthData = create_auth_data(),
     Path = filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]),
@@ -79,6 +89,8 @@ save_auth_data_to_file() ->
     file:write(OpenedFile, AuthData),
     file:close(OpenedFile).
 
+%% @doc Recursive function for authorization data saving.
+-spec create_auth_data() -> Acc :: binary().
 create_auth_data() ->
     create_auth_data(ets:first(authorization), <<"">>).
 
@@ -89,12 +101,18 @@ create_auth_data(Username, Acc) ->
     [{Username, PassHash}] = ets:lookup(authorization, Username),
     create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", PassHash/binary, "\n">>).
 
+%% @doc Encode the uncoded password in base64.
+-spec encode_credentials(Username :: binary(), Password :: binary()) -> binary().
 encode_credentials(Username, Password) ->
     base64:encode(<<Username/binary, ":", Password/binary>>).
 
+%% @doc Return the full path for the .htpasswd file.
+-spec get_htpasswd_path() -> string() | binary().
 get_htpasswd_path() ->
     filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]).
 
+%% @doc Load the saved authorization data into the authorization ets.
+-spec load(Path :: string() | binary()) -> {ok, FD :: pid()} | {error, Reason :: any()}.
 load(Path) ->
     case file:open(Path, [read, write, binary]) of
         {ok, FD} ->
@@ -106,6 +124,8 @@ load(Path) ->
             {error, Reason}
     end.
 
+%% @doc Recursive function to load all the authoriztion data.
+-spec read_user_credentials(FD :: pid()) -> Credentials :: [].
 read_user_credentials(FD) ->
     read_user_credentials(FD, []).
 
@@ -118,12 +138,16 @@ read_user_credentials(FD, Credentials) ->
             read_user_credentials(FD, [Credential | Credentials])
     end.
 
+%% @doc Parse the saved authorization data for use.
+-spec parse_user_credential(Line :: binary()) -> {User :: binary(), Password :: binary()}.
 parse_user_credential(Line) ->
     Line2 = string:tokens(erlang:binary_to_list(Line), "\n"),
     Line3 = list_to_binary(Line2),
     [User, Password] = binary:split(Line3, <<":">>),
     {User, Password}.
 
+%% @doc Save the authorization credentials into the authorization ets.
+-spec save(Credentials :: list()) -> ok.
 save(Credentials) when is_list(Credentials) ->
     [ok = save(Credential) || Credential <- Credentials],
     ok;

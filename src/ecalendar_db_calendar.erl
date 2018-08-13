@@ -25,9 +25,6 @@
 
 start() ->
     ets:new(calendar, [set, named_table, public]),
-
-    % TODO move from ecalendar_file the corresponding parts here
-
     ok = load(),
 
     ok.
@@ -37,30 +34,36 @@ start() ->
 %%====================================================================
 
 %% @doc Check for a component in the ets.
+-spec is_exists(Key :: binary()) -> true | false.
 is_exists(Key) ->
     ets:member(calendar, Key).
 
 %% @doc Return the component from the ets.
+-spec get_component(Key :: binary()) -> CalendarList :: {Data :: binary(), Etag :: binary(), URI :: binary(), User :: binary()}.
 get_component(Key) ->
     [{Key, CalendarList} | _] = ets:lookup(calendar, Key),
     CalendarList.
 
 %% @doc Return all components of a user.
+-spec get_user_components(User :: binary()) -> [{Filename :: binary(), [binary()]}].
 get_user_components(User) ->
     ets:match_object(calendar, {'_', ['_', '_', '_', User]}).
 
 %% @doc Add a new component to the database.
+-spec add_component(Filename :: binary(), Value :: [binary()]) -> ok.
 add_component(Filename, Value) ->
     ets:insert(calendar,{Filename, Value}),
     Username = lists:nth(4, Value),
     write_to_file(Username, Filename).
 
 %% @doc Create an empty calendar directory for the new user.
+-spec add_new_user_calendar(Username :: binary()) -> ok.
 add_new_user_calendar(Username) ->
     BaseDir = code:priv_dir(?APPLICATION),
     filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])).
 
 %% @doc Delete the specified calendar component file.
+-spec delete_data(Username :: binary(), Filename :: binary()) -> ok.
 delete_data(Username, Filename) ->
     BaseDir = code:priv_dir(?APPLICATION),
     io:format("DELETING EVENT FILE~n"),
@@ -72,6 +75,8 @@ delete_data(Username, Filename) ->
     ets:delete(calendar, Filename),
     io:format("EVENT DELETED~n").
 
+%% @doc Delete the whole calendar of the specified user.
+-spec delete_user_calendar(Username :: binary()) -> {ok | error, binary()}.
 delete_user_calendar(Username) ->
     io:format("Deleting user~n"),
     BaseDir = code:priv_dir(?APPLICATION),
@@ -95,6 +100,7 @@ delete_user_calendar(Username) ->
 %% Internal functions
 %%====================================================================
 
+%% @doc Load the saved ecalendar data into the calendar ets.
 load() ->
     BaseDir = code:priv_dir(?APPLICATION),
     Path = filename:join([BaseDir, <<"data/">>]),
@@ -109,6 +115,7 @@ load() ->
 
     io:format("LOADING FINISHED~n").
 
+%% @doc Recursive function that loads the calendars of the users into the calendar ets.
 load_calendars([]) ->
     ok;
 
@@ -126,6 +133,8 @@ load_calendar(Directory) ->
     io:format("Calendar loading finished~n~n"),
     ok.
 
+%% @doc Recursive function that loads the events of a user into the calendar ets.
+-spec load_files(binary(), [string() | binary()]) -> ok.
 load_files(_, []) ->
     ok;
 
@@ -133,6 +142,8 @@ load_files(Username, [Path | Paths]) ->
     ok = load_file(Username, Path),
     load_files(Username, Paths).
 
+%% @doc Load the event of a user into the calendar ets.
+-spec load_file(Username :: binary(), string() | binary()) -> ok.
 load_file(Username, Path) ->
     Filename = filename:basename(Path),
     {ok, OpenedFile} = file:open(Path, [read, binary]),
@@ -158,6 +169,8 @@ load_file(Username, Path) ->
 
     ok.
 
+%% @doc Read the rest of an event file.
+-spec read_rest(OpenedFile :: pid(), CurrentLine :: eof | {ok , Data :: binary()}, Acc :: binary()) -> Acc :: binary().
 read_rest(OpenedFile, CurrentLine, Acc) ->
     case CurrentLine of
         eof ->
@@ -168,6 +181,7 @@ read_rest(OpenedFile, CurrentLine, Acc) ->
     end.
 
 %% @doc Write the calendar component into an ics file.
+-spec write_to_file(User :: binary(), Key :: binary()) -> ok.
 write_to_file(User, Key) ->
     io:format("SAVING EVENT TO FILE~n"),
     BaseDir = code:priv_dir(?APPLICATION),
