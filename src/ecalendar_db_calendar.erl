@@ -75,16 +75,20 @@ delete_data(Username, Filename) ->
 delete_user_calendar(Username) ->
     io:format("Deleting user~n"),
     BaseDir = code:priv_dir(?APPLICATION),
-    {ok, Filenames} = file:list_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
-    lists:foreach(fun(Filename1) ->
-                          io:format("...~n"),
-                          Filename2 = binary:list_to_bin(Filename1),
-                          delete_data(Username, Filename2)
-                  end, Filenames),
-    file:del_dir(filename:basename(Filenames)),
-    file:del_dir(filename:basename(filename:basename(Filenames))),
-    io:format(<<Username/binary, " user deleted~n">>),
-    {ok, <<Username/binary, " deleted">>}.
+    case file:list_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])) of
+        {ok, Filenames} ->
+            lists:foreach(fun(Filename1) ->
+                              io:format("...~n"),
+                              Filename2 = binary:list_to_bin(Filename1),
+                              delete_data(Username, Filename2)
+                          end, Filenames),
+            file:del_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
+            file:del_dir(filename:join([BaseDir, <<"data">>, Username])),
+            io:format(<<Username/binary, " user deleted~n">>),
+            {ok, <<Username/binary, " deleted">>};
+        {error, _} ->
+            {error, <<"Calendar does not exist.">>}
+        end.
 
 
 %%====================================================================

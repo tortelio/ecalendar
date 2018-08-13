@@ -82,13 +82,12 @@ delete_existing_user(Config) ->
     ?assertEqual(true, ecalendar_db:user_exists(<<"janos">>)),
 
     BaseDir = code:priv_dir(ecalendar),
-    {ok, OpenedFile} = file:open(<<BaseDir/binary, "/data/janos/calendar/event.ics">>, [write, binary]),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/janos/calendar/valami.ics">>]), [write, binary]),
     file:write(OpenedFile, <<"janos's event.">>),
     file:close(OpenedFile),
     {ok, _} = ecalendar_db:delete_user(<<"janos">>),
 
     ?assertEqual(false, ecalendar_db:user_exists(<<"janos">>)),
-    ?assertEqual(undefined, ets:info(flora)),
 
     ok.
 
