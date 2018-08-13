@@ -18,12 +18,6 @@
 %% @doc Creates the XML response for the request
 create_response(Username, RequestBody, UserURI) ->
     Model = get_model(),
-    %PrivDir = code:priv_dir(ecalendar),
-    %CalDav = lists:concat([PrivDir, "/caldav.xsd"]),
-    %{ok, Model} = erlsom:compile_xsd_file(CalDav,
-    %                                      [{include_files,
-    %                                        [{"urn:ietf:params:xml:ns:caldav", "C", lists:concat([PrivDir, "/ns2.xsd"])},
-    %                                         {"DAV:", "D", CalDav}]}]),
     RequestList = parse_request(RequestBody, Model),
     Response = get_requested_data(Username, UserURI, RequestList),
     {ok, OutPut} = erlsom:write(Response, Model),
