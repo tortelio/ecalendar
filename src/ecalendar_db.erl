@@ -11,6 +11,7 @@
 %% API
 -export([start/0,
          create_user/2,
+         delete_user/1,
          authenticate_user/2,
          delete_event/2,
          insert_event_into_db/2,
@@ -34,6 +35,14 @@ create_user(Username, Password) ->
         {ok, _} ->
             ecalendar_db_calendar:add_new_user_calendar(Username),
             {ok, <<Username/binary, " user created">>};
+        _ ->
+            {error, "Error"}
+    end.
+
+delete_user(Username) ->
+    case ecalendar_db_calendar:delete_user_calendar(Username) of
+        {ok, _} ->
+            ecalendar_db_credential:delete(Username);
         _ ->
             {error, "Error"}
     end.

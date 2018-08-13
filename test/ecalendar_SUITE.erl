@@ -21,7 +21,8 @@ all() -> [get_calendar,
 %%------------------------------------------------------------------------------
 
 init_per_suite(Config) ->
-    filelib:ensure_dir("data/jozsi/"),
+    BaseDir = code:priv_dir(ecalendar),
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/jozsi/calendar/">>, <<"valami">>])),
     {ok, _} = application:ensure_all_started(ecalendar),
     {ok, _} = application:ensure_all_started(gun),
     Config.
@@ -36,13 +37,13 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
-    ecalendar_user:create(<<"jozsi">>, <<"password">>),
+    ecalendar_db:create_user(<<"jozsi">>, <<"password">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
 
 end_per_testcase(_, Config1) ->
-    ecalendar_user:delete(<<"jozsi">>),
+    ecalendar_db:delete_user(<<"jozsi">>),
     _Config2 = ecalendar_test:teardown_http_connection(Config1),
 
     ok.
@@ -53,38 +54,40 @@ end_per_testcase(_, Config1) ->
 
 %% @doc Create a not existing user.
 create_new_user(Config) ->
-    ?assertEqual(false, ecalendar_user:exists(<<"mari">>)),
-    {ok, _} = ecalendar_user:create(<<"mari">>, <<"password">>),
+    ?assertEqual(false, ecalendar_db:user_exists(<<"mari">>)),
+    {ok, _} = ecalendar_db:create_user(<<"mari">>, <<"password">>),
 
-    ?assertEqual(true, ecalendar_user:exists(<<"mari">>)),
+    ?assertEqual(true, ecalendar_db:user_exists(<<"mari">>)),
+    {ok, _} = ecalendar_db:delete_user(<<"mari">>),
 
     ok.
 
 %% @doc Create an existing user.
 create_existing_user(Config) ->
-    ?assertEqual(true, ecalendar_user:exists(<<"jozsi">>)),
-    {error, _} = ecalendar_user:create(<<"jozsi">>, <<"password">>),
+    ?assertEqual(true, ecalendar_db:user_exists(<<"jozsi">>)),
+    {error, _} = ecalendar_db:create_user(<<"jozsi">>, <<"password">>),
 
     ok.
 
 %% @doc Delete a not existing user.
 delete_not_existing_user(Config) ->
-    ?assertEqual(false, ecalendar_user:exists(<<"bela">>)),
-    {error, _} = ecalendar_user:delete(<<"bela">>),
+    ?assertEqual(false, ecalendar_db:user_exists(<<"bela">>)),
+    {error, _} = ecalendar_db:delete_user(<<"bela">>),
 
     ok.
 
 %% @doc Delete an existing user.
 delete_existing_user(Config) ->
-    {ok, _} = ecalendar_user:create(<<"janos">>, <<"password">>),
-    ?assertEqual(true, ecalendar_user:exists(<<"janos">>)),
+    {ok, _} = ecalendar_db:create_user(<<"janos">>, <<"password">>),
+    ?assertEqual(true, ecalendar_db:user_exists(<<"janos">>)),
 
-    {ok, OpenedFile} = file:open(<<"data/janos/event.ics">>, [write, binary]),
+    BaseDir = code:priv_dir(ecalendar),
+    {ok, OpenedFile} = file:open(<<BaseDir/binary, "/data/janos/calendar/event.ics">>, [write, binary]),
     file:write(OpenedFile, <<"janos's event.">>),
     file:close(OpenedFile),
-    {ok, _} = ecalendar_user:delete(<<"janos">>),
+    {ok, _} = ecalendar_db:delete_user(<<"janos">>),
 
-    ?assertEqual(false, ecalendar_user:exists(<<"janos">>)),
+    ?assertEqual(false, ecalendar_db:user_exists(<<"janos">>)),
     ?assertEqual(undefined, ets:info(flora)),
 
     ok.
