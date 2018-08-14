@@ -47,13 +47,13 @@ get_report_request(Filename) ->
     </D:prop><D:href>/jozsi/calendar/", Filename/binary, "</D:href></C:calendar-multiget>">>.
 
 get_etag_of_event(EventName) ->
-    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_', '_']}) of
-        [{EventName, [_, Etag, _, _, _]}] -> Etag;
+    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
+        [{EventName, [_, Etag, _, _]}] -> Etag;
         _ -> error
     end.
 
 is_event_in_database(EventName) ->
-    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_', '_']}) of
+    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
         [] -> false;
         _ -> true
     end.

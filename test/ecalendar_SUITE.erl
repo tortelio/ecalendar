@@ -123,7 +123,7 @@ add_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    EventExists = ecalendar_test:is_event_in_database(<<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(<<"/testuser1/calendar/valami.ics">>),
 
     ?assertEqual(true, EventExists),
     ok.
@@ -165,11 +165,11 @@ delete_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    Etag = ecalendar_test:get_etag_of_event(<<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(<<"/testuser1/calendar/valami.ics">>),
     DeleteHeaders = ecalendar_test:custom_headers(<<"testuser1">>, <<"password">>, [{<<"if-match">>, Etag}]),
     Reply2 = http_client:delete(ConnPid, "/testuser1/calendar/valami.ics", DeleteHeaders),
 
-    EventExists = ecalendar_test:is_event_in_database(<<"valami.ics">>),
+    EventExists = ecalendar_test:is_event_in_database(<<"/testuser1/calendar/valami.ics">>),
     ?assertEqual({204, false}, {Reply2, EventExists}),
 
     ok.
@@ -184,7 +184,7 @@ update_event(_Config) ->
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
     NewBody = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:UPDATEDICSBODY\r\nEND:VCALENDAR">>,
-    Etag = ecalendar_test:get_etag_of_event(<<"valami.ics">>),
+    Etag = ecalendar_test:get_etag_of_event(<<"/testuser1/calendar/valami.ics">>),
     NewHeaders = ecalendar_test:custom_headers(<<"testuser1">>, <<"password">>, [{<<"if-match">>, Etag},
                                                                              {<<"content-type">>, <<"text/calendar">>}]),
     Reply2 = http_client:put(ConnPid, "/testuser1/calendar/valami.ics", NewHeaders, NewBody),
