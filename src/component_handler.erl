@@ -91,10 +91,8 @@ calendar_component(Req, State) ->
 %% @doc Delete the resource from the ets.
 -spec delete_resource(Req :: cowboy_req:req(), any()) -> {atom(), cowboy_req:req(), any()}.
 delete_resource(Req, State) ->
-    Filename = cowboy_req:binding(component, Req),
-    io:format("Test1"),
-    ecalendar_db:delete_event(cowboy_req:binding(username, Req),Filename),
-    io:format("Test2"),
+    Uri = cowboy_req:uri(Req),
+    ecalendar_db:delete_event(Uri),
     {true, Req, State}.
 
 %% @doc Generate etag for a DELETE request.
@@ -135,5 +133,5 @@ handle_request(<<"PUT">>, Req) ->
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ParsedBody = eics:decode(Body2),
-    ecalendar_db:insert_event(Filename, [Body2, Etag, Uri, Username, ParsedBody]),
+    ecalendar_db:insert_event(Uri, [Body2, Etag, Username, ParsedBody]),
     {201, <<"CREATED">>}.
