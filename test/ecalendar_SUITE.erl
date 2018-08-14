@@ -9,11 +9,7 @@ all() -> [get_calendar,
           get_report_of_event,
           add_event_with_unauthorized_user,
           delete_event,
-          update_event,
-          create_new_user,
-          create_existing_user,
-          delete_not_existing_user,
-          delete_existing_user
+          update_event
          ].
 
 %%------------------------------------------------------------------------------
@@ -35,13 +31,13 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(_, Config1) ->
-    ecalendar_db:create_user(<<"testuser1">>, <<"password">>),
+    ecalendar_db:create_user(<<"testuser">>, <<"password">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
 
 end_per_testcase(_, Config1) ->
-    ecalendar_db:delete_user(<<"testuser1">>),
+    ok = ecalendar_db:drop(),
     _Config2 = ecalendar_test:teardown_http_connection(Config1),
 
     ok.
@@ -49,45 +45,6 @@ end_per_testcase(_, Config1) ->
 %%------------------------------------------------------------------------------
 %% TESTCASES
 %%------------------------------------------------------------------------------
-
-%% @doc Create a not existing user.
-create_new_user(Config) ->
-    ?assertEqual(false, ecalendar_db:user_exists(<<"testuser2">>)),
-    {ok, _} = ecalendar_db:create_user(<<"testuser2">>, <<"password">>),
-
-    ?assertEqual(true, ecalendar_db:user_exists(<<"testuser2">>)),
-    {ok, _} = ecalendar_db:delete_user(<<"testuser2">>),
-
-    ok.
-
-%% @doc Create an existing user.
-create_existing_user(Config) ->
-    ?assertEqual(true, ecalendar_db:user_exists(<<"testuser1">>)),
-    {error, _} = ecalendar_db:create_user(<<"testuser1">>, <<"password">>),
-
-    ok.
-
-%% @doc Delete a not existing user.
-delete_not_existing_user(Config) ->
-    ?assertEqual(false, ecalendar_db:user_exists(<<"testuser3">>)),
-    {error, _} = ecalendar_db:delete_user(<<"testuser3">>),
-
-    ok.
-
-%% @doc Delete an existing user.
-delete_existing_user(Config) ->
-    {ok, _} = ecalendar_db:create_user(<<"testuser4">>, <<"password">>),
-    ?assertEqual(true, ecalendar_db:user_exists(<<"testuser4">>)),
-
-    BaseDir = code:priv_dir(ecalendar),
-    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/testuser4/calendar/valami.ics">>]), [write, binary]),
-    file:write(OpenedFile, <<"testuser4's event.">>),
-    file:close(OpenedFile),
-    {ok, _} = ecalendar_db:delete_user(<<"testuser4">>),
-
-    ?assertEqual(false, ecalendar_db:user_exists(<<"testuser4">>)),
-
-    ok.
 
 %% @doc User sends a request with proper credentials to the server and get own calendar
 get_calendar(Config) ->
