@@ -10,6 +10,7 @@
 
 %% API
 -export([start/0,
+         drop/0,
          create_user/2,
          delete_user/1,
          authenticate_user/2,
@@ -30,15 +31,21 @@ start() ->
     ok = ecalendar_db_calendar:start(),
     ok.
 
+
+drop() ->
+    ecalendar_db_calendar:delete_all(),
+    ecalendar_db_credential:delete_all(),
+    ok.
+    
 %% @doc Create a new user.
 -spec create_user(Username :: binary(), Password :: binary()) -> {ok | error, binary()}.
 create_user(Username, Password) ->
     case ecalendar_db_credential:add(Username, Password) of
         {ok, _} ->
             ecalendar_db_calendar:add_new_user_calendar(Username),
-            {ok, <<Username/binary, " user created">>};
-        _ ->
-            {error, "Error"}
+            {ok, 'user_created'};
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 %% @doc Delete a user.
@@ -47,8 +54,8 @@ delete_user(Username) ->
     case ecalendar_db_calendar:delete_user_calendar(Username) of
         {ok, _} ->
             ecalendar_db_credential:delete(Username);
-        _ ->
-            {error, "Error"}
+        {error, Reason} ->
+            {error, Reason}
     end.
 
 %% @doc Check for a user with the specified credentials.

@@ -15,7 +15,8 @@
          user_exists/1,
          find/1,
          add/2,
-         delete/1]).
+         delete/1,
+         delete_all/0]).
 
 %%====================================================================
 %% API
@@ -60,7 +61,7 @@ add(Username, Password) ->
             file:write(OpenedFile, <<Username/binary, ":", PasswordEncoded/binary, "\n">>),
             {ok, added};
         _ ->
-            {error, exists}
+            {error, 'already_exist'}
     end.
 
 %% @doc Delete a user's authorization data.
@@ -68,12 +69,19 @@ add(Username, Password) ->
 delete(Username) ->
     case find(Username) of
         [] ->
-            {error, nexists};
+            {error, 'missing_user'};
         _ ->
             ets:delete(authorization, Username),
             save_auth_data_to_file(),
             {ok, deleted}
     end.
+
+delete_all() ->
+    ets:delete_all_objects(authorization),
+    Path = filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]),
+    file:delete(Path),
+    {ok, OpenedFile} = file:open(Path, [write, read, binary]),
+    file:close(OpenedFile).
 
 %%====================================================================
 %% Internal functions

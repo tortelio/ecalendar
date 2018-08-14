@@ -17,7 +17,8 @@
          get_component/1,
          get_user_components/1,
          delete_data/1,
-         delete_user_calendar/1]).
+         delete_user_calendar/1,
+         delete_all/0]).
 
 %%====================================================================
 %% API
@@ -91,9 +92,30 @@ delete_user_calendar(Username) ->
             file:del_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
             file:del_dir(filename:join([BaseDir, <<"data">>, Username])),
             io:format(<<Username/binary, " user deleted~n">>),
-            {ok, <<Username/binary, " deleted">>};
+            {ok, 'deleted'};
         {error, _} ->
-            {error, <<"Calendar does not exist.">>}
+            {error, 'missing_calendar'}
+        end.
+
+delete_all() ->
+    BaseDir = code:priv_dir(?APPLICATION),
+    case file:list_dir(filename:join([BaseDir, <<"data">>])) of
+        {ok, UsersDirs} ->
+            lists:foreach(fun(UserDir) ->
+                              case file:list_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])) of
+                                  {ok, UserEvents} ->
+                                      lists:foreach(fun(UserEvent) ->
+                                      io:format(UserEvent),
+                                                        delete_data(filename:join([<<"/">>, UserDir, <<"calendar">>, UserEvent]))
+                                                    end, UserEvents),
+                                      file:del_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])),
+                                      file:del_dir(filename:join([BaseDir, <<"data">>, UserDir])),
+                                  {error, <<"Calendar does not exist">>}
+                              end
+                          end, UsersDirs),
+            {ok, <<"SERVER HAS BEEN WIPED">>};
+        {error, _} ->
+            {error, <<"THERE IS NO SERVER DATA">>}
         end.
 
 
