@@ -92,7 +92,9 @@ calendar_component(Req, State) ->
 -spec delete_resource(Req :: cowboy_req:req(), any()) -> {atom(), cowboy_req:req(), any()}.
 delete_resource(Req, State) ->
     Filename = cowboy_req:binding(component, Req),
+    io:format("Test1"),
     ecalendar_db:delete_event(cowboy_req:binding(username, Req),Filename),
+    io:format("Test2"),
     {true, Req, State}.
 
 %% @doc Generate etag for a DELETE request.
