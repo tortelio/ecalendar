@@ -103,6 +103,7 @@ delete_user_calendar(Username) ->
 %% @doc Load the saved ecalendar data into the calendar ets.
 load() ->
     BaseDir = code:priv_dir(?APPLICATION),
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/valami">>])),
     Path = filename:join([BaseDir, <<"data/">>]),
     filelib:ensure_dir(Path),
     io:format("~nLOADING SAVED DATA~n"),
