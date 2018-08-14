@@ -106,7 +106,7 @@ is_authorized(Req, State) ->
                 false ->
                     {{false, realm()}, Req, State}
             end;
-        undefined ->
+        _ ->
             {{false, realm()}, Req, State}
     end.
 

@@ -47,7 +47,7 @@ get_component(Key) ->
 %% @doc Return all components of a user.
 -spec get_user_components(User :: binary()) -> [{Filename :: binary(), [binary()]}].
 get_user_components(User) ->
-    ets:match_object(calendar, {'_', ['_', '_', '_', User]}).
+    ets:match_object(calendar, {'_', ['_', '_', '_', User, '_']}).
 
 %% @doc Add a new component to the database.
 -spec add_component(Filename :: binary(), Value :: [binary()]) -> ok.
@@ -146,16 +146,13 @@ load_files(Username, [Path | Paths]) ->
 -spec load_file(Username :: binary(), string() | binary()) -> ok.
 load_file(Username, Path) ->
     Filename = filename:basename(Path),
-    {ok, OpenedFile} = file:open(Path, [read, binary]),
+    %{ok, OpenedFile} = file:open(Path, [read, binary]),
 
-    {ok, Etag1} = file:read_line(OpenedFile),
-
-    Data = read_rest(OpenedFile, file:read_line(OpenedFile), <<"">>),
-
+    {ok, RawFile} = file:read_file(Path),
+    SplitRawFile = binary:split(RawFile, <<"\r\n">>),
+    Etag = lists:nth(1, SplitRawFile),
+    Data = lists:nth(2, SplitRawFile),
     Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
-
-    Etag2 = string:tokens(erlang:binary_to_list(Etag1), "\n"),
-    Etag = list_to_binary(Etag2),
     io:format("~n"),
     io:format(Filename),
     io:format("---"),
@@ -165,8 +162,9 @@ load_file(Username, Path) ->
     io:format("-----"),
     io:format(Username),
     io:format("~n"),
-    ets:insert(calendar, {Filename, [Data, Etag, Uri, Username]}),
-
+    io:format(Data),
+    ParsedBody = eics:decode(Data),
+    ets:insert(calendar, {Filename, [Data, Etag, Uri, Username, ParsedBody]}),
     ok.
 
 %% @doc Read the rest of an event file.
@@ -189,6 +187,6 @@ write_to_file(User, Key) ->
     [{Key, CalendarList} | _] = ets:lookup(calendar, Key),
     ComponentData = lists:nth(1, CalendarList),
     ComponentEtag = lists:nth(2, CalendarList),
-    file:write(OpenedFile, <<ComponentEtag/binary, "\n", ComponentData/binary>>),
+    file:write(OpenedFile, <<ComponentEtag/binary, "\r\n", ComponentData/binary>>),
     file:close(OpenedFile),
     io:format("EVENT SAVED~n").

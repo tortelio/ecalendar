@@ -132,5 +132,6 @@ handle_request(<<"PUT">>, Req) ->
     Filename = cowboy_req:binding(component, Req),
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
-    ecalendar_db:insert_event(Filename, [Body2, Etag, Uri, Username]),
+    ParsedBody = eics:decode(Body2),
+    ecalendar_db:insert_event(Filename, [Body2, Etag, Uri, Username, ParsedBody]),
     {201, <<"CREATED">>}.
