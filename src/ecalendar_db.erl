@@ -13,7 +13,7 @@
          create_user/2,
          delete_user/1,
          authenticate_user/2,
-         delete_event/2,
+         delete_event/1,
          insert_event/2,
          event_exists/1,
          get_component/1,
@@ -64,14 +64,14 @@ authenticate_user(Username, Password) ->
     end.
 
 %% @doc Delete the event of a user.
--spec delete_event(Username :: binary(), Eventname :: binary()) -> ok.
-delete_event(Username, Eventname) ->
-    ecalendar_db_calendar:delete_data(Username, Eventname).
+-spec delete_event(URI :: binary()) -> ok.
+delete_event(URI) ->
+    ecalendar_db_calendar:delete_data(URI).
 
 %% @doc Add a new event to the database.
 -spec insert_event(Key :: binary(), Value :: [binary()]) -> ok.
-insert_event(Key, Value) ->
-    ecalendar_db_calendar:add_component(Key, Value).
+insert_event(URI, Value) ->
+    ecalendar_db_calendar:add_component(URI, Value).
 
 %% @doc Check if an event exists or not.
 -spec event_exists(Key :: binary()) -> true | false.

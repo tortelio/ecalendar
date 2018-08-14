@@ -44,8 +44,8 @@ known_methods(Req, State) ->
 %% @doc Check if the resource exists in the ets.
 -spec resource_exists(Req :: cowboy_req:req(), State :: any()) -> {IsExists :: atom(), Req :: cowboy_req:req(), State :: any()}.
 resource_exists(Req, State) ->
-    Filename = cowboy_req:binding(component, Req),
-    IsExists = ecalendar_db:event_exists(Filename),
+    Uri = iolist_to_binary(cowboy_req:uri(Req, #{host => undefined})),
+    IsExists = ecalendar_db:event_exists(Uri),
     {IsExists, Req, State}.
 
 %% @doc Media types accepted by the server.
@@ -76,7 +76,7 @@ is_authorized(Req, State) ->
                 false ->
                     {{false, realm()}, Req, State}
             end;
-        undefined ->
+        _ ->
             {{false, realm()}, Req, State}
     end.
 
@@ -91,15 +91,15 @@ calendar_component(Req, State) ->
 %% @doc Delete the resource from the ets.
 -spec delete_resource(Req :: cowboy_req:req(), any()) -> {atom(), cowboy_req:req(), any()}.
 delete_resource(Req, State) ->
-    Uri = cowboy_req:uri(Req),
+    Uri = iolist_to_binary(cowboy_req:uri(Req, #{host => undefined})),
     ecalendar_db:delete_event(Uri),
     {true, Req, State}.
 
 %% @doc Generate etag for a DELETE request.
 -spec generate_etag(Req :: cowboy_req:req(), any()) -> {Etag :: binary(), cowboy_req:req(), any()}.
 generate_etag(Req, State) ->
-    Key = cowboy_req:binding(component, Req),
-    CalendarList = ecalendar_db:get_component(Key),
+    Uri = iolist_to_binary(cowboy_req:uri(Req, #{host => undefined})),
+    CalendarList = ecalendar_db:get_component(Uri),
     Etag = lists:nth(2, CalendarList),
     {Etag, Req, State}.
 
@@ -128,10 +128,11 @@ read_body(Req0, Acc) ->
 -spec handle_request(binary(), Req :: cowboy_req:req()) -> {non_neg_integer(), binary()}.
 handle_request(<<"PUT">>, Req) ->
     Username = cowboy_req:binding(username, Req),
-    Uri = cowboy_req:uri(Req),
+    Uri = cowboy_req:uri(Req, #{host => undefined}),
     Filename = cowboy_req:binding(component, Req),
     Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ParsedBody = eics:decode(Body2),
-    ecalendar_db:insert_event(Uri, [Body2, Etag, Username, ParsedBody]),
+    Uri2 = iolist_to_binary(Uri),
+    ecalendar_db:insert_event(Uri2, [Body2, Etag, Username, ParsedBody]),
     {201, <<"CREATED">>}.

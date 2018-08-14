@@ -16,7 +16,7 @@
          add_component/2,
          get_component/1,
          get_user_components/1,
-         delete_data/2,
+         delete_data/1,
          delete_user_calendar/1]).
 
 %%====================================================================
@@ -36,6 +36,8 @@ start() ->
 %% @doc Check for a component in the ets.
 -spec is_exists(Key :: binary()) -> true | false.
 is_exists(Key) ->
+io:format(Key),
+io:format("~n"),
     ets:member(calendar, Key).
 
 %% @doc Return the component from the ets.
@@ -47,14 +49,14 @@ get_component(Key) ->
 %% @doc Return all components of a user.
 -spec get_user_components(User :: binary()) -> [{Filename :: binary(), [binary()]}].
 get_user_components(User) ->
-    ets:match_object(calendar, {'_', ['_', '_', '_', User, '_']}).
+    ets:match_object(calendar, {'_', ['_', '_', User, '_']}).
 
 %% @doc Add a new component to the database.
 -spec add_component(Filename :: binary(), Value :: [binary()]) -> ok.
-add_component(Filename, Value) ->
-    ets:insert(calendar,{Filename, Value}),
-    Username = lists:nth(4, Value),
-    write_to_file(Username, Filename).
+add_component(URI, Value) ->
+    ets:insert(calendar,{URI, Value}),
+    Username = lists:nth(3, Value),
+    write_to_file(Username, URI).
 
 %% @doc Create an empty calendar directory for the new user.
 -spec add_new_user_calendar(Username :: binary()) -> ok.
@@ -63,16 +65,15 @@ add_new_user_calendar(Username) ->
     filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])).
 
 %% @doc Delete the specified calendar component file.
--spec delete_data(Username :: binary(), Filename :: binary()) -> ok.
-delete_data(Username, Filename) ->
+-spec delete_data(Filename :: binary()) -> ok.
+delete_data(URI) ->
     BaseDir = code:priv_dir(?APPLICATION),
+    FullURI = filename:join([BaseDir, <<"data", URI/binary>>]),
     io:format("DELETING EVENT FILE~n"),
-    io:format(Username),
-    io:format("--------"),
-    io:format(Filename),
+    io:format(FullURI),
     io:format("~n"),
-    file:delete(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>, Filename])),
-    ets:delete(calendar, Filename),
+    file:delete(FullURI),
+    ets:delete(calendar, URI),
     io:format("EVENT DELETED~n").
 
 %% @doc Delete the whole calendar of the specified user.
@@ -85,7 +86,7 @@ delete_user_calendar(Username) ->
             lists:foreach(fun(Filename1) ->
                               io:format("...~n"),
                               Filename2 = binary:list_to_bin(Filename1),
-                              delete_data(Username, Filename2)
+                              delete_data(filename:join([Username, <<"calendar">>, Filename2]))
                           end, Filenames),
             file:del_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
             file:del_dir(filename:join([BaseDir, <<"data">>, Username])),
@@ -155,37 +156,39 @@ load_file(Username, Path) ->
     Data = lists:nth(2, SplitRawFile),
     Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
     io:format("~n"),
-    io:format(Filename),
+    io:format(Uri),
     io:format("---"),
     io:format(Etag),
-    io:format("-----"),
-    io:format(Uri),
     io:format("-----"),
     io:format(Username),
     io:format("~n"),
     io:format(Data),
     ParsedBody = eics:decode(Data),
-    ets:insert(calendar, {Filename, [Data, Etag, Uri, Username, ParsedBody]}),
+    ets:insert(calendar, {Uri, [Data, Etag, Username, ParsedBody]}),
     ok.
 
 %% @doc Read the rest of an event file.
--spec read_rest(OpenedFile :: pid(), CurrentLine :: eof | {ok , Data :: binary()}, Acc :: binary()) -> Acc :: binary().
-read_rest(OpenedFile, CurrentLine, Acc) ->
-    case CurrentLine of
-        eof ->
-            file:close(OpenedFile),
-            Acc;
-        {ok, Data} ->
-            read_rest(OpenedFile, file:read_line(OpenedFile), <<Acc/binary, Data/binary>>)
-    end.
+%-spec read_rest(OpenedFile :: pid(), CurrentLine :: eof | {ok , Data :: binary()}, Acc :: binary()) -> Acc :: binary().
+%read_rest(OpenedFile, CurrentLine, Acc) ->
+    %case CurrentLine of
+        %eof ->
+            %file:close(OpenedFile),
+            %Acc;
+        %{ok, Data} ->
+            %read_rest(OpenedFile, file:read_line(OpenedFile), <<Acc/binary, Data/binary>>)
+    %end.
 
 %% @doc Write the calendar component into an ics file.
 -spec write_to_file(User :: binary(), Key :: binary()) -> ok.
-write_to_file(User, Key) ->
+write_to_file(User, URI) ->
     io:format("SAVING EVENT TO FILE~n"),
+    io:format(User),
+    io:format("-----"),
+    io:format(URI),
+    io:format("~n"),
     BaseDir = code:priv_dir(?APPLICATION),
-    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data">>, User, <<"calendar">>, Key]), [write, read, binary]),
-    [{Key, CalendarList} | _] = ets:lookup(calendar, Key),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data", URI/binary>>]), [write, read, binary]),
+    [{URI, CalendarList} | _] = ets:lookup(calendar, URI),
     ComponentData = lists:nth(1, CalendarList),
     ComponentEtag = lists:nth(2, CalendarList),
     file:write(OpenedFile, <<ComponentEtag/binary, "\r\n", ComponentData/binary>>),
