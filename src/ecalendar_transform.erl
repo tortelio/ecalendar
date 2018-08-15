@@ -80,19 +80,24 @@ create_response_body([ReqForm | Rest], CalUser, CalUri) ->
     UserList = ecalendar_db:get_user_list(CalUser),
     case ReqForm of
         propfind ->
-            case lists:member(resourcetype, Rest) =:= false or lists:member('supported-report-set', Rest) of
+            case lists:member(owner, Rest) of
                 true ->
                     get_ctag_response(CalUser, CalUri);
-                _ ->
-                    get_propfind(Rest, UserList, CalUri)
+                false ->
+                    get_propfind(Rest, UserList, iolist_to_binary(CalUri), CalUser)
             end;
         'C:calendar-multiget' ->
             get_event_responses(UserList, [], report)
     end.
 
-get_propfind(ReqList, UserList, Uri) ->
-    CalPropBody = create_prop_body(ReqList),
-    EventData = get_event_responses(UserList, [], propfind),
+get_propfind(ReqList, UserList, Uri, User) ->
+    CalPropBody = create_prop_body(ReqList, Uri, User),
+    EventData = case lists:member('C:calendar-home-set', ReqList) of
+                    false ->
+                        get_event_responses(UserList, [], propfind);
+                    true ->
+                        []
+                end,
     [{response, [], Uri, [{propstat, [], CalPropBody,  "HTTP/1.1 200 OK", undefined, undefined}],
       undefined, undefined, undefined} | EventData].
 
@@ -113,37 +118,45 @@ get_event_responses([Current | Rest], Acc, Mode) ->
     EventReport = {response, [], UriPart , [{propstat, [], ThisEvent, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined},
     get_event_responses(Rest, [EventReport | Acc], Mode).
 
-create_prop_body(ReqList) ->
+create_prop_body(ReqList, Uri, User) ->
     PropElements = [resourcetype, owner, 'current-user-principal', 'supported-report-set', 'supported-calendar-component-set', 
-                    getcontentlength, getcontenttype, getetag, getlastmodified,
-                    'quota-available-bytes','calendar-data', "TEST"],
+                    getcontentlength, getcontenttype, getetag, 'C:calendar-home-set', 'C:calendar-user-address-set',
+                    'calendar-data', getctag, 'C:schedule-inbox-URL', 'C:schedule-outbox-URL'],
     Start = {prop, []},
-    create_prop_body(PropElements, ReqList, 3, Start).
+    create_prop_body(PropElements, ReqList, Uri, User, 3, Start).
 
-create_prop_body([], _, _, Acc) ->
+create_prop_body([], _, _, _, _, Acc) ->
     Acc;
 
-create_prop_body([CurrentProp | Rest], ReqList, Pos, Acc) ->
+create_prop_body([CurrentProp | Rest], ReqList, Uri, User, Pos, Acc) ->
     ToInsert = case lists:member(CurrentProp, ReqList) of
                    false ->
                        undefined;
                    true ->
-                       get_element(CurrentProp)
+                       get_element(CurrentProp, Uri, User)
                end,
     NewAcc = erlang:insert_element(Pos, Acc, ToInsert),
-    create_prop_body(Rest, ReqList, Pos+1, NewAcc).
+    create_prop_body(Rest, ReqList, Uri, User, Pos+1, NewAcc).
 
-get_element(Element) ->
+get_element(Element, Uri, User) ->
     case Element of
         resourcetype ->
             {resourcetype, [], {collection, []}, {'C:calendar', []}, []};
+        'C:calendar-home-set' ->
+            {'C:calendar-home-set', [], Uri};
+        'C:calendar-user-address-set' ->
+            {'C:calendar-user-address-set', [], Uri};
+        'C:schedule-inbox-URL' ->
+            {'C:schedule-inbox-URL', [], <<Uri/binary, "inbox">>};
+        'C:schedule-outbox-URL' ->
+            {'C:schedule-outbox-URL', [], <<Uri/binary, "outbox">>};
         _ ->
             undefined
     end.
 
 create_event_prop(CalBody, ContType, Etag) ->
     {prop, [], undefined, undefined, undefined, undefined, undefined,
-     undefined, ContType, Etag, undefined, undefined, CalBody, undefined}.
+     undefined, ContType, Etag, undefined, undefined, CalBody, undefined, undefined, undefined}.
 
 %% @doc Creates a response for the ctag request
 get_ctag_response(CalUser, CalURI) ->
@@ -153,10 +166,10 @@ get_ctag_response(CalUser, CalURI) ->
 ctag_prop_body(User, Uri) ->
     Ctag = create_ctag(User),
     SuppComp = {'C:supported-calendar-component-set', [], [{'C:comp', [], "VEVENT"}]},
-    SuppReports = get_reports(['calendar-multiget', 'calendar-query', 'free-busy-query'], []),
+    SuppReports = get_reports(['calendar-multiget', 'calendar-query', 'free-busy-query', 'read-free-busy'], []),
     {prop, [], {resourcetype, [], {collection, []}, {'C:calendar', []}, []}, {owner, [], binary:bin_to_list(Uri)},
      {'current-user-principal',[], binary:bin_to_list(Uri)}, {'supported-report-set', [], SuppReports, []},
-     SuppComp, undefined, undefined, undefined, undefined, undefined, undefined, Ctag}.
+     SuppComp, undefined, undefined, undefined, undefined, undefined, undefined, Ctag, undefined, undefined}.
 
 %% @doc Collects the supported reports
 get_reports([], Acc) ->

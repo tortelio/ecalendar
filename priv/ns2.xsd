@@ -10,11 +10,33 @@
     <xs:element name="calendar">
         <xs:complexType/>
     </xs:element>
-    <xs:element name="schedule-inbox">
-        <xs:complexType/>
+    <xs:element name="schedule-inbox-URL">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns1:href" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
     </xs:element>
-    <xs:element name="schedule-outbox">
-        <xs:complexType/>
+    <xs:element name="schedule-outbox-URL">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns1:href" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="calendar-home-set">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns1:href" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="calendar-user-address-set">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns1:href" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
     </xs:element>
     <xs:element name="calendar-multiget">
         <xs:complexType>
@@ -62,15 +84,13 @@
             </xs:sequence>
         </xs:complexType>
     </xs:element>
+
     <xs:element name="calendar-data" type="xs:string" />
-    <!--<xs:element name="calendar-data">
-        <xs:complexType>
-            <xs:attribute name="content-type" use="required"/>
-            <xs:attribute name="version" use="required" type="xs:decimal"/>
-        </xs:complexType>
-    </xs:element>-->
+
     <xs:element name="default-alarm-vevent-date" type="xs:string"/>
+
     <xs:element name="default-alarm-vevent-datetime" type="xs:string"/>
+
     <xs:element name="read-free-busy">
         <xs:complexType/>
     </xs:element>

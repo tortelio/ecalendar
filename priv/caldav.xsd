@@ -44,10 +44,12 @@
                 <element ref="dav:getcontentlength" minOccurs="0"/>
                 <element ref="dav:getcontenttype" minOccurs="0"/>
                 <element ref="dav:getetag" minOccurs="0"/>
-                <element ref="dav:getlastmodified" minOccurs="0"/>
-                <element ref="dav:quota-available-bytes" minOccurs="0"/>
+                <element ref="C:calendar-home-set" minOccurs="0"/>
+                <element ref="C:calendar-user-address-set" minOccurs="0"/>
                 <element ref="C:calendar-data" minOccurs="0"/>
                 <element ref="dav:getctag" minOccurs="0"/>
+                <element ref="C:schedule-inbox-URL" minOccurs="0"/>
+                <element ref="C:schedule-outbox-URL" minOccurs="0"/>
             </all>
         </complexType>
     </element>
@@ -226,12 +228,19 @@
       </complexType>
   </element>
 
+  <element name="read-free-busy">
+      <complexType>
+          <sequence />
+      </complexType>
+  </element>
+
   <element name="report">
       <complexType>
           <choice>
               <element ref="dav:calendar-multiget"/>
               <element ref="dav:free-busy-query"/>
               <element ref="dav:calendar-query"/>
+              <element ref="dav:read-free-busy"/>
           </choice>
       </complexType>
   </element>
