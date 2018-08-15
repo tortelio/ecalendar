@@ -12,7 +12,8 @@
 -export([init/2,
          known_methods/2,
          allowed_methods/2,
-         is_authorized/2]).
+         is_authorized/2,
+         options/2]).
 
 %%====================================================================
 %% API
@@ -107,6 +108,11 @@ is_authorized(Req, State) ->
         _ ->
             {{false, realm()}, Req, State}
     end.
+
+options(Req0, State) ->
+    Req = cowboy_req:reply(200, #{<<"DAV">> => <<"1, 2, calendar-schedule, calendar-query">>,
+                                  <<"Allow">> => <<"OPTIONS, PROPFIND, REPORT">>}, <<"">>, Req0),
+    {ok, Req, State}.
 
 %%====================================================================
 %% Internal functions
