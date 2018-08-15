@@ -33,7 +33,6 @@ init_per_testcase(_, Config) ->
     Config.
 
 end_per_testcase(_, Config1) ->
-    % TODO this function call which delete the content of tables
     ok = ecalendar_db:drop(),
     ok.
 

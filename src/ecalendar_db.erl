@@ -31,12 +31,11 @@ start() ->
     ok = ecalendar_db_calendar:start(),
     ok.
 
-
 drop() ->
     ecalendar_db_calendar:delete_all(),
     ecalendar_db_credential:delete_all(),
     ok.
-    
+
 %% @doc Create a new user.
 -spec create_user(Username :: binary(), Password :: binary()) -> {ok | error, binary()}.
 create_user(Username, Password) ->

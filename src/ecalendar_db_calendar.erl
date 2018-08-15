@@ -37,8 +37,6 @@ start() ->
 %% @doc Check for a component in the ets.
 -spec is_exists(Key :: binary()) -> true | false.
 is_exists(Key) ->
-io:format(Key),
-io:format("~n"),
     ets:member(calendar, Key).
 
 %% @doc Return the component from the ets.
@@ -85,9 +83,9 @@ delete_user_calendar(Username) ->
     case file:list_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])) of
         {ok, Filenames} ->
             lists:foreach(fun(Filename1) ->
-                              io:format("...~n"),
-                              Filename2 = binary:list_to_bin(Filename1),
-                              delete_data(filename:join([Username, <<"calendar">>, Filename2]))
+                                  io:format("...~n"),
+                                  Filename2 = binary:list_to_bin(Filename1),
+                                  delete_data(filename:join([Username, <<"calendar">>, Filename2]))
                           end, Filenames),
             file:del_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])),
             file:del_dir(filename:join([BaseDir, <<"data">>, Username])),
@@ -95,29 +93,28 @@ delete_user_calendar(Username) ->
             {ok, 'deleted'};
         {error, _} ->
             {error, 'missing_calendar'}
-        end.
+    end.
 
 delete_all() ->
     BaseDir = code:priv_dir(?APPLICATION),
     case file:list_dir(filename:join([BaseDir, <<"data">>])) of
         {ok, UsersDirs} ->
             lists:foreach(fun(UserDir) ->
-                              case file:list_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])) of
-                                  {ok, UserEvents} ->
-                                      lists:foreach(fun(UserEvent) ->
-                                      io:format(UserEvent),
-                                                        delete_data(filename:join([<<"/">>, UserDir, <<"calendar">>, UserEvent]))
-                                                    end, UserEvents),
-                                      file:del_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])),
-                                      file:del_dir(filename:join([BaseDir, <<"data">>, UserDir])),
-                                  {error, <<"Calendar does not exist">>}
-                              end
+                                  case file:list_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])) of
+                                      {ok, UserEvents} ->
+                                          lists:foreach(fun(UserEvent) ->
+                                                                io:format(UserEvent),
+                                                                delete_data(filename:join([<<"/">>, UserDir, <<"calendar">>, UserEvent]))
+                                                        end, UserEvents),
+                                          file:del_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])),
+                                          file:del_dir(filename:join([BaseDir, <<"data">>, UserDir])),
+                                          {error, <<"Calendar does not exist">>}
+                                  end
                           end, UsersDirs),
             {ok, <<"SERVER HAS BEEN WIPED">>};
         {error, _} ->
             {error, <<"THERE IS NO SERVER DATA">>}
-        end.
-
+    end.
 
 %%====================================================================
 %% Internal functions
@@ -188,17 +185,6 @@ load_file(Username, Path) ->
     ParsedBody = eics:decode(Data),
     ets:insert(calendar, {Uri, [Data, Etag, Username, ParsedBody]}),
     ok.
-
-%% @doc Read the rest of an event file.
-%-spec read_rest(OpenedFile :: pid(), CurrentLine :: eof | {ok , Data :: binary()}, Acc :: binary()) -> Acc :: binary().
-%read_rest(OpenedFile, CurrentLine, Acc) ->
-    %case CurrentLine of
-        %eof ->
-            %file:close(OpenedFile),
-            %Acc;
-        %{ok, Data} ->
-            %read_rest(OpenedFile, file:read_line(OpenedFile), <<Acc/binary, Data/binary>>)
-    %end.
 
 %% @doc Write the calendar component into an ics file.
 -spec write_to_file(User :: binary(), Key :: binary()) -> ok.

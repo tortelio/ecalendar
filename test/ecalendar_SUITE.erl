@@ -143,7 +143,7 @@ update_event(_Config) ->
     NewBody = <<"BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:UPDATEDICSBODY\r\nEND:VCALENDAR">>,
     Etag = ecalendar_test:get_etag_of_event(<<"/testuser/calendar/valami.ics">>),
     NewHeaders = ecalendar_test:custom_headers(<<"testuser">>, <<"password">>, [{<<"if-match">>, Etag},
-                                                                             {<<"content-type">>, <<"text/calendar">>}]),
+                                                                                {<<"content-type">>, <<"text/calendar">>}]),
     Reply2 = http_client:put(ConnPid, "/testuser/calendar/valami.ics", NewHeaders, NewBody),
 
     ?assertEqual({201, <<"CREATED">>}, Reply2),

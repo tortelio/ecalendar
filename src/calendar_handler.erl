@@ -52,8 +52,6 @@ init(Req0 = #{method := <<"PROPFIND">>}, State) ->
     Req = cowboy_req:reply(RespCode, #{}, RespBody, Req0),
     {ok, Req, State};
 
-%% <<"DAV">> => <<"1, 2, 3 calendar-access, calendar-schedule, calendar-query">>
-
 %% @doc Handles the REPORT requests
 init(Req0 = #{method := <<"REPORT">>}, State) ->
     Auth = case is_authorized(Req0, State) of

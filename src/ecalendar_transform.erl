@@ -101,7 +101,7 @@ get_event_responses([], Acc, _) ->
     Acc;
 
 get_event_responses([Current | Rest], Acc, Mode) ->
-    {Uri, [Body, Etag, Username, ParsedBody]} = Current,
+    {Uri, [Body, Etag, _, _]} = Current,
     {CalBody, ContType} = case Mode of
                               propfind ->
                                   {undefined, "text/calendar; charset=utf-8; component=vevent"};
@@ -174,7 +174,7 @@ create_ctag(Username) ->
 
 -spec create_ctag([], Username :: binary()) -> binary().
 create_ctag([UserListHead | UserListTail], Acc) ->
-    {Uri, [Body, Etag, Username, ParsedBody]} = UserListHead,
+    {_, [_, Etag, _, _]} = UserListHead,
     create_ctag(UserListTail, <<Acc/binary, Etag/binary>>);
 
 create_ctag([], Acc) ->
