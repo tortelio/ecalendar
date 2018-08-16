@@ -23,6 +23,9 @@ start(_StartType, _StartArgs) ->
     % Start HTTP server
     Dispatch = cowboy_router:compile([{'_',
                                        [{"/sign-up", sign_up_handler, []},
+                                        {"/:username", user_handler, []},
+                                        {"/:username/outbox", outbox_handler, []},
+                                        {"/:username/inbox", inbox_handler, []},
                                         {"/:username/calendar", calendar_handler, []},
                                         {"/:username/calendar/:component", component_handler, []}
                                        ]}]),

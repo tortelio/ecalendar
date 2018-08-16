@@ -31,7 +31,6 @@ start() ->
 create_response(Username, RequestBody, UserURI) ->
     Model = get_model(),
     RequestList = parse_request(RequestBody, Model),
-    io:format("~p~n", [RequestList]),
     Response = get_requested_data(Username, UserURI, RequestList),
     {ok, OutPut} = erlsom:write(Response, Model),
     binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
@@ -117,8 +116,7 @@ get_event_responses([Current | Rest], Acc, Mode) ->
                                   {Body, undefined}
                           end,
     ThisEvent = create_event_prop(CalBody, ContType, Etag),
-    UriPart = binary:bin_to_list(iolist_to_binary(Uri)),
-    EventReport = {response, [], UriPart , [{propstat, [], ThisEvent, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined},
+    EventReport = {response, [], Uri , [{propstat, [], ThisEvent, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined},
     get_event_responses(Rest, [EventReport | Acc], Mode).
 
 create_prop_body(ReqList, Uri, User) ->
@@ -148,7 +146,7 @@ get_element(Element, Uri, User) ->
         'C:calendar-home-set' ->
             {'C:calendar-home-set', [], Uri};
         'C:calendar-user-address-set' ->
-            {'C:calendar-user-address-set', [], Uri};
+            {'C:calendar-user-address-set', [], <<"mailto:", User/binary, "@example.com">>};
         'C:schedule-inbox-URL' ->
             {'C:schedule-inbox-URL', [], <<Uri/binary, "inbox">>};
         'C:schedule-outbox-URL' ->
@@ -161,9 +159,9 @@ get_element(Element, Uri, User) ->
         getctag ->
             create_ctag(User);
         owner ->
-            {owner, [], Uri};
+            {owner, [], <<"/", User/binary>>};
         'current-user-principal' ->
-            {'current-user-principal', [], Uri};
+            {'current-user-principal', [], <<"/", User/binary>>};
         _ ->
             undefined
     end.

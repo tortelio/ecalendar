@@ -61,7 +61,9 @@ add_component(URI, Value) ->
 -spec add_new_user_calendar(Username :: binary()) -> ok.
 add_new_user_calendar(Username) ->
     BaseDir = code:priv_dir(?APPLICATION),
-    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])).
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])),
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"inbox/">>, <<"valami">>])),
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"outbox/">>, <<"valami">>])).
 
 %% @doc Delete the specified calendar component file.
 -spec delete_data(Filename :: binary()) -> ok.
