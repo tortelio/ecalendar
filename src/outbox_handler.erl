@@ -77,11 +77,9 @@ realm() ->
     <<"Basic realm=\"Access to the staging site\"">>.
 
 freebusy(Req, State) ->
-
     {ok, Body, _} = read_body(Req, <<"">>),
-    % Body2 = ecalendar_transform:VALAMI(ecalendar_freebusy:VALAMI2(Body)),
-    % TODO: get xml, freebusy response.
-    Req0 = cowboy_req:reply(200, #{}, <<"TODO: REAL RESPONSE">>, Req),
+    Body2 = ecalendar_transform:create_freebusy_response(ecalendar_freebusy:get_response_body(Body), ecalendar_freebusy:get_recipient(Body)),
+    Req0 = cowboy_req:reply(200, #{}, Body2, Req),
     {ok, Req0, State}.
 
 

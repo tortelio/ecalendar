@@ -10,6 +10,7 @@
 
 -export([start/0,
          create_response/3,
+         create_freebusy_response/2,
          skip_auth/1]).
 
 %%====================================================================
@@ -32,6 +33,12 @@ create_response(Username, RequestBody, UserURI) ->
     Model = get_model(),
     RequestList = parse_request(RequestBody, Model),
     Response = get_requested_data(Username, UserURI, RequestList),
+    {ok, OutPut} = erlsom:write(Response, Model),
+    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
+
+create_freebusy_response(FreeBusyBody, Attendee) ->
+    Model = get_model(),
+    Response = {'C:schedule-response', [], {'C:response', [], {'C:recipient', [], Attendee}, "2.0;Success", FreeBusyBody}},
     {ok, OutPut} = erlsom:write(Response, Model),
     binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
 
