@@ -37,12 +37,14 @@ get_recipient(ICSbody) ->
 %% Internal functions
 %%====================================================================
 
+%% @doc Gets the local time and formats it so that it can be given as DTSTAMP
 get_local_time() ->
     {Day, Hour} = calendar:local_time(),
     {LDay, LHour} = {lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Day)),
                      lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Hour))},
     [LDay, 84 ,LHour, "Z"].
 
+%% @doc Collects parsed event datas of the given user
 find_user_events(User) ->
     Events = ecalendar_db:get_user_list(User),
     find_user_events(Events, User, []).
@@ -51,19 +53,32 @@ find_user_events([], _, Acc) ->
     Acc;
 
 find_user_events([Current | Rest], User, Acc) ->
-    {_, [_, _, _, Parsed]} = Current,
-    #{events := Event} = Parsed,
+    {_, [_, _, _, ParsedEventData]} = Current,
+    #{events := Event} = ParsedEventData,
     find_user_events(Rest, User, lists:merge(Event, Acc)).
 
+%% @doc Gets the username from the ATTENDEE ICS element
 get_username(FreebusyData) ->
     Part = lists:nth(3, lists:nth(4, FreebusyData)),
     Bin = binary:list_to_bin(Part),
     lists:nth(1, binary:split(Bin, <<"@">>)).
 
+%% @doc Returns the start and end time of the input event
 get_start_end_time(ParsedICS, Place) ->
     #{dtstart := Start, dtend := End} = ParsedICS,
-    {lists:nth(Place, Start), lists:nth(Place, End)}.
+    case (is_list(lists:nth(2, Start))) andalso lists:flatten(lists:nth(2, Start)) =:= ";VALUE=DATE" of
+        true ->
+            create_whole_day_list(lists:nth(4, Start), lists:nth(4, End));
+        false ->
+            {lists:nth(Place, Start), lists:nth(Place, End)}
+    end.
 
+%% @doc Creates start/end times for whole day events
+create_whole_day_list(InStart, InEnd) ->
+    {[InStart, 84, ["00", "00", "00"]],
+     [InEnd, 84, ["00", "0", "00"]]}.
+
+%% @doc Iterates through the events and collects the times that are in the asked time interval
 create_availability([], _, Acc) ->
     Acc;
 
@@ -77,9 +92,11 @@ create_availability([{Start1, End1} | Rest], {Start2, End2}, Acc) ->
                end,
     create_availability(Rest, {Start2, End2}, <<Acc/binary, ToInsert/binary>>).
 
+%% @doc Creates a FREEBUSY ICS element line
 create_line(Start, End) ->
     <<"FREEBUSY;FBTYPE=BUSY:", Start/binary, "Z/", End/binary, "Z\r\n">>.
 
+%% @doc Creates the ICS body from the map
 create_ics_body(Key, Value, Acc) when is_map(Value) ->
     #{type := Type} = Value,
     Component = binary:list_to_bin(string:to_upper(atom_to_list(Type))),
