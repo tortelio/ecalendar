@@ -30,33 +30,35 @@ start() ->
 
 %% @doc Creates the XML response for the request
 create_response(Username, RequestBody, UserURI) ->
-    Model = get_model(),
-    RequestList = parse_request(RequestBody, Model),
+    RequestList = parse_request(RequestBody),
     Response = get_requested_data(Username, UserURI, RequestList),
-    {ok, OutPut} = erlsom:write(Response, Model),
-    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
+    write_response(Response).
 
 create_freebusy_response(FreeBusyBody, Attendee) ->
-    Model = get_model(),
     Response = {'C:schedule-response', [], {'C:response', [], {'C:recipient', [], Attendee}, "2.0;Success", FreeBusyBody}},
-    {ok, OutPut} = erlsom:write(Response, Model),
-    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
+    write_response(Response).
 
 skip_auth(RequestBody) ->
-    Model = get_model(),
-    RequestList = parse_request(RequestBody, Model),
+    RequestList = parse_request(RequestBody),
     lists:member(owner, RequestList).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
 
+%% @doc Writes the response tuple into a binary
+write_response(Response) ->
+    Model = get_model(),
+    {ok, OutPut} = erlsom:write(Response, Model),
+    binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
+
 % @doc Reads the XML model from the ets
 get_model() ->
     [{_, Model}] = ets:lookup(model, caldav),
     Model.
 
-parse_request(InputXML, Model) ->
+parse_request(InputXML) ->
+    Model = get_model(),
     {ok, Result} = erlsom:parse(InputXML, Model),
     get_requested_elements(Result).
 
@@ -146,6 +148,7 @@ create_prop_body([CurrentProp | Rest], ReqList, Uri, User, Pos, Acc) ->
     NewAcc = erlang:insert_element(Pos, Acc, ToInsert),
     create_prop_body(Rest, ReqList, Uri, User, Pos + 1, NewAcc).
 
+%% @doc Gets the return value for the given parameter
 get_element(Element, Uri, User) ->
     case Element of
         resourcetype ->

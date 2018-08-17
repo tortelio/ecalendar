@@ -76,7 +76,7 @@ get_start_end_time(ParsedICS, Place) ->
 %% @doc Creates start/end times for whole day events
 create_whole_day_list(InStart, InEnd) ->
     {[InStart, 84, ["00", "00", "00"]],
-     [InEnd, 84, ["00", "0", "00"]]}.
+     [InEnd, 84, ["00", "00", "00"]]}.
 
 %% @doc Iterates through the events and collects the times that are in the asked time interval
 create_availability([], _, Acc) ->
@@ -93,6 +93,7 @@ create_availability([{Start1, End1} | Rest], {Start2, End2}, Acc) ->
     create_availability(Rest, {Start2, End2}, <<Acc/binary, ToInsert/binary>>).
 
 %% @doc Creates a FREEBUSY ICS element line
+-spec create_line(binary(), binary()) -> binary().
 create_line(Start, End) ->
     <<"FREEBUSY;FBTYPE=BUSY:", Start/binary, "Z/", End/binary, "Z\r\n">>.
 
