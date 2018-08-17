@@ -1,5 +1,5 @@
 %%%-------------------------------------------------------------------
-%%% @doc Checks for Free-Busy availability
+%%% @doc Checks for Free-Busy availability and creates response ICS
 %%%-------------------------------------------------------------------
 
 -module(ecalendar_freebusy).
@@ -8,28 +8,40 @@
 %% Exports
 %%====================================================================
 
--export([get_availability/0
+-export([get_response_body/1,
+         get_recipient/1
          ]).
 
 %%====================================================================
 %% API
 %%====================================================================
 
-%-spec get_availability(binary()) -> binary().
-get_availability() ->
-    {ok, File} = file:read_file("test.ics"),
-    File2 = binary:replace(File, <<"\n">>, <<"\r\n">>, [global]),
-    Original = #{freebusy := #{attendee := Attendee} = FreeBusy} = eics:decode(File2),
+-spec get_response_body(binary()) -> binary().
+get_response_body(RequestBody) ->
+    Original = #{freebusy := #{attendee := Attendee} = FreeBusy} = eics:decode(RequestBody),
     Username = get_username(Attendee),
     {StartTime, EndTime} = get_start_end_time(FreeBusy, 3),
     EventTimes = lists:map(fun(L) -> get_start_end_time(L, 4) end, find_user_events(Username)),
-    create_availability(EventTimes, {StartTime, EndTime}, <<"">>),
-    New = #{data => Original},
-    maps:fold(fun(K,V,A) -> create_ics_body(K,V,A) end, <<"">>, New).
+    FreebusyComp = create_availability(EventTimes, {StartTime, EndTime}, <<"">>),
+    Modified = #{data => Original#{method => "METHOD:REPLY\r\n",
+                                   freebusy => FreeBusy#{response => binary:bin_to_list(FreebusyComp),
+                                                         dtstamp => lists:concat(["DTSTAMP:", get_local_time(), "\r\n"])
+                                                        }}},
+    maps:fold(fun(K,V,A) -> create_ics_body(K,V,A) end, <<"">>, Modified).
+
+get_recipient(ICSbody) ->
+    #{freebusy := #{attendee := Attendee}} = eics:decode(ICSbody),
+    lists:flatten(lists:nth(4, Attendee)).
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+get_local_time() ->
+    {Day, Hour} = calendar:local_time(),
+    {LDay, LHour} = {lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Day)),
+                     lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Hour))},
+    [LDay, 84 ,LHour, "Z"].
 
 find_user_events(User) ->
     Events = ecalendar_db:get_user_list(User),
