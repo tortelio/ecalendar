@@ -10,6 +10,29 @@
     <xs:element name="calendar">
         <xs:complexType/>
     </xs:element>
+    <xs:element name="schedule-response">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns2:response" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="response">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns2:recipient" minOccurs="1"/>
+                <xs:element ref="ns2:request-status" minOccurs="1"/>
+                <xs:element ref="ns2:calendar-data" minOccurs="1"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+    <xs:element name="recipient">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element ref="ns1:href" minOccurs="0" />
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
     <xs:element name="schedule-inbox-URL">
         <xs:complexType>
             <xs:sequence>
@@ -86,6 +109,8 @@
     </xs:element>
 
     <xs:element name="calendar-data" type="xs:string" />
+
+    <xs:element name="request-status" type="xs:string" />
 
     <xs:element name="default-alarm-vevent-date" type="xs:string"/>
 
