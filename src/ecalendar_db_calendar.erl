@@ -18,7 +18,8 @@
          get_user_components/1,
          delete_data/1,
          delete_user_calendar/1,
-         delete_all/0]).
+         delete_all/0,
+         ics_time_to_utc/1]).
 
 %%====================================================================
 %% API
@@ -118,6 +119,50 @@ delete_all() ->
             {error, <<"THERE IS NO SERVER DATA">>}
     end.
 
+ics_time_to_utc(ParsedBody) ->
+    #{events := Eventlist} = ParsedBody,
+    Event = lists:nth(1, Eventlist),
+    #{dtstart := Start, dtend := End} = Event,
+    TempDtStart = iso8601:parse(list_to_binary(lists:nth(4, Start))),
+    TempDtEnd = iso8601:parse(list_to_binary(lists:nth(4, End))),
+    #{timezone := TimeZones} = ParsedBody,
+    case maps:is_key(daylight, TimeZones) of
+        true ->
+            #{daylight := DayLight} = TimeZones,
+            #{rrule := RRD} = DayLight,
+            #{standard := StanDard} = TimeZones,
+            #{rrule := RRS} = StanDard,
+            #{tzoffsetto := TOSD} = DayLight,
+            #{tzoffsetto := TOSS} = StanDard,
+            Tosd = string:chomp(lists:nth(2, binary:split(list_to_binary(TOSD), <<":">>))),
+            TosdHour = list_to_integer(binary_to_list(string:slice(Tosd, 0, 3))),
+            TosdMin = list_to_integer(binary_to_list(string:slice(Tosd, 3, 5))),
+            Toss = string:chomp(lists:nth(2, binary:split(list_to_binary(TOSS), <<":">>))),
+            TossHour = list_to_integer(binary_to_list(string:slice(Toss, 0, 3))),
+            TossMin = list_to_integer(binary_to_list(string:slice(Toss, 3, 5))),
+            case (TempDtStart < time_rrule_date(RRS, TempDtStart)) and (TempDtStart > time_rrule_date(RRD, TempDtStart)) of 
+                true ->
+                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TosdHour*3600 + TosdMin*60);
+                false ->
+                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TossHour*3600 + TossMin*60)
+            end,
+            case (TempDtEnd < time_rrule_date(RRS, TempDtEnd)) and (TempDtEnd > time_rrule_date(RRD, TempDtEnd)) of 
+                true ->
+                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TosdHour*3600 + TosdMin*60);
+                false ->
+                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TossHour*3600 + TossMin*60)
+            end;
+        false ->
+            #{standard := StanDard} = TimeZones,
+            #{tzoffsetto := TOSD} = StanDard,
+            Tosd = string:chomp(lists:nth(2, binary:split(list_to_binary(TOSD), <<":">>))),
+            TosdHour = list_to_integer(binary_to_list(string:slice(Tosd, 0, 3))),
+            TosdMin = list_to_integer(binary_to_list(string:slice(Tosd, 3, 5))),
+            DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TosdHour*3600 + TosdMin*60),
+            DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TosdHour*3600 + TosdMin*60)
+    end,
+    {DtStart, DtEnd}.
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
@@ -177,8 +222,58 @@ load_file(Username, Path) ->
     Data = lists:nth(2, SplitRawFile),
     Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
     ParsedBody = eics:decode(Data),
+    %%
+    %case maps:is_key(timezone, ParsedBody) of
+        %true ->
+            %{DtStart, DtEnd} = ics_time_to_utc(ParsedBody);
+        %false ->
+            %#{events := Eventlist} = ParsedBody,
+            %Event = lists:nth(1, Eventlist),
+            %#{dtstart := Start, dtend := End} = Event,
+            %DtStart = iso8601:parse(list_to_binary(lists:nth(4, Start))),
+            %DtEnd = iso8601:parse(list_to_binary(lists:nth(4, End)))
+        %end,
+    %%
     ets:insert(calendar, {Uri, [Data, Etag, Username, ParsedBody]}),
     ok.
+
+time_rrule_date(RRule, Date)->
+    {{Year, _, _},{_, _, _}} = Date,
+    Month = list_to_integer(binary_to_list(string:chomp(lists:nth(2, binary:split(list_to_binary(RRule), <<";BYMONTH=">>))))),
+    NumDay = lists:nth(2, binary:split(lists:nth(1, binary:split(list_to_binary(RRule), <<";BYMONTH=">>)), <<";BYDAY=">>)),
+    Num = list_to_integer(binary_to_list(string:slice(NumDay, 0, 2))),
+    DayType = string:slice(NumDay, 2),
+    case DayType of 
+    <<"MO">> ->
+    DayTypeId = 1;
+    <<"TU">> ->
+    DayTypeId = 2;
+    <<"WE">> ->
+    DayTypeId = 3;
+    <<"TH">> ->
+    DayTypeId = 4;
+    <<"FR">> ->
+    DayTypeId = 5;
+    <<"SA">> ->
+    DayTypeId = 6;
+    <<"SU">> ->
+    DayTypeId = 7
+    end,
+    case (Num < 0) of
+        true ->
+            LastDayTypeId = calendar:day_of_the_week(Year, Month, calendar:last_day_of_the_month(Year, Month)),
+            DayDiff = LastDayTypeId - DayTypeId,
+            DayMod = DayDiff rem 7,
+            FinalDayDiff =(7+DayMod) rem 7,
+            Day = calendar:last_day_of_the_month(Year, Month) - FinalDayDiff + (Num+1)*7;
+        false ->
+            FirstDayTypeId = calendar:day_of_the_week(Year, Month, 1),
+            DayDiff = DayTypeId - FirstDayTypeId,
+            DayMod = DayDiff rem 7,
+            FinalDayDiff =(7+DayMod) rem 7,
+            Day = 1 + FinalDayDiff + (Num-1)*7
+    end,
+    {{Year, Month, Day}, {0, 0, 0}}.
 
 %% @doc Write the calendar component into an ics file.
 -spec write_to_file(User :: binary(), Key :: binary()) -> ok.
