@@ -20,12 +20,12 @@
 get_response_body(RequestBody) ->
     Original = #{freebusy := #{attendee := Attendee} = FreeBusy} = eics:decode(RequestBody),
     Username = get_username(Attendee),
-    {StartTime, EndTime} = get_start_end_time(FreeBusy, 3),
-    EventTimes = lists:map(fun(L) -> get_start_end_time(L, 4) end, find_user_events(Username)),
+    {StartTime, EndTime} = get_start_end_time(FreeBusy),
+    EventTimes = lists:map(fun(L) -> process_event(L) end, find_user_events(Username)),
     FreebusyComp = create_availability(EventTimes, {StartTime, EndTime}, <<"">>),
     Modified = #{data => Original#{method => "METHOD:REPLY\r\n",
                                    freebusy => FreeBusy#{response => binary:bin_to_list(FreebusyComp),
-                                                         dtstamp => lists:concat(["DTSTAMP:", get_local_time(), "\r\n"])
+                                                         dtstamp => lists:concat(["DTSTAMP:", time_to_list(calendar:local_time()), "\r\n"])
                                                         }}},
     maps:fold(fun(K,V,A) -> create_ics_body(K,V,A) end, <<"">>, Modified).
 
@@ -38,10 +38,10 @@ get_recipient(ICSbody) ->
 %%====================================================================
 
 %% @doc Gets the local time and formats it so that it can be given as DTSTAMP
-get_local_time() ->
-    {Day, Hour} = calendar:local_time(),
-    {LDay, LHour} = {lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Day)),
-                     lists:map(fun(L) -> integer_to_list(L) end, tuple_to_list(Hour))},
+time_to_list(InputTime) ->
+    {Day, Hour} = InputTime,
+    {LDay, LHour} = {create_time_list(tuple_to_list(Day)),
+                     create_time_list(tuple_to_list(Hour))},
     [LDay, 84 ,LHour, "Z"].
 
 %% @doc Collects parsed event datas of the given user
@@ -54,8 +54,9 @@ find_user_events([], _, Acc) ->
 
 find_user_events([Current | Rest], User, Acc) ->
     {_, [_, _, _, ParsedEventData]} = Current,
-    #{events := Event} = ParsedEventData,
-    find_user_events(Rest, User, lists:merge(Event, Acc)).
+    %#{events := Event} = ParsedEventData,
+    %find_user_events(Rest, User, lists:merge(Event, Acc)).
+    find_user_events(Rest, User, [ParsedEventData | Acc]).
 
 %% @doc Gets the username from the ATTENDEE ICS element
 get_username(FreebusyData) ->
@@ -64,14 +65,23 @@ get_username(FreebusyData) ->
     lists:nth(1, binary:split(Bin, <<"@">>)).
 
 %% @doc Returns the start and end time of the input event
-get_start_end_time(ParsedICS, Place) ->
-    #{dtstart := Start, dtend := End} = ParsedICS,
-    case (is_list(lists:nth(2, Start))) andalso lists:flatten(lists:nth(2, Start)) =:= ";VALUE=DATE" of
-        true ->
-            create_whole_day_list(lists:nth(4, Start), lists:nth(4, End));
+process_event(#{events := Events} = Parsed) ->
+    #{dtstart := Start, dtend := End} = lists:nth(1, Events),
+    case is_list(lists:nth(2, Start)) of
         false ->
-            {lists:nth(Place, Start), lists:nth(Place, End)}
+            get_start_end_time(lists:nth(1, Events));
+        true ->
+            case lists:flatten(lists:nth(2, Start)) =:= ";VALUE=DATE" of
+                true ->
+                    create_whole_day_list(lists:nth(4, Start), lists:nth(4, End));
+                false ->
+                    {UtcStart, UtcEnd} = ecalendar_db:get_utc_time(Parsed),
+                    {time_to_list(UtcStart), time_to_list(UtcEnd)}
+            end
     end.
+
+get_start_end_time(#{dtstart := Start, dtend := End}) ->
+    {lists:nth(3, Start), lists:nth(3, End)}.
 
 %% @doc Creates start/end times for whole day events
 create_whole_day_list(InStart, InEnd) ->
@@ -95,7 +105,13 @@ create_availability([{Start1, End1} | Rest], {Start2, End2}, Acc) ->
 %% @doc Creates a FREEBUSY ICS element line
 -spec create_line(binary(), binary()) -> binary().
 create_line(Start, End) ->
-    <<"FREEBUSY;FBTYPE=BUSY:", Start/binary, "Z/", End/binary, "Z\r\n">>.
+    Suffix = case binary:last(Start) of
+                 90 ->
+                     <<"">>;
+                 _->
+                     <<"Z">>
+             end,
+    <<"FREEBUSY;FBTYPE=BUSY:", Start/binary, Suffix/binary, "/", End/binary, Suffix/binary, "\r\n">>.
 
 %% @doc Creates the ICS body from the map
 create_ics_body(Key, Value, Acc) when is_map(Value) ->
@@ -111,3 +127,11 @@ create_ics_body(Key, Value, Acc) when is_list(Value) ->
 
 create_ics_body(_, _, Acc) ->
     Acc.
+
+create_time_list(List) ->
+    lists:map(fun(V) -> case V < 10 of
+                             true ->
+                                 lists:merge("0", integer_to_list(V));
+                             _ -> integer_to_list(V)
+                         end
+             end, List).

@@ -19,6 +19,7 @@
          event_exists/1,
          get_component/1,
          get_user_list/1,
+         get_utc_time/1,
          user_exists/1
         ]).
 
@@ -93,6 +94,9 @@ get_component(Key) ->
 -spec get_user_list(Username :: binary()) -> [{Filename :: binary(), [binary()]}].
 get_user_list(Username) ->
     ecalendar_db_calendar:get_user_components(Username).
+
+get_utc_time(ParsedData) ->
+    ecalendar_db_calendar:ics_time_to_utc(ParsedData).
 
 %% @doc Check if the user exists or not.
 -spec user_exists(Username :: binary()) -> true | false.

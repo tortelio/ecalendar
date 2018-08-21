@@ -142,15 +142,15 @@ ics_time_to_utc(ParsedBody) ->
             TossMin = list_to_integer(binary_to_list(string:slice(Toss, 3, 5))),
             case (TempDtStart < time_rrule_date(RRS, TempDtStart)) and (TempDtStart > time_rrule_date(RRD, TempDtStart)) of 
                 true ->
-                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TosdHour*3600 + TosdMin*60);
+                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) - TosdHour*3600 - TosdMin*60);
                 false ->
-                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TossHour*3600 + TossMin*60)
+                    DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) - TossHour*3600 - TossMin*60)
             end,
             case (TempDtEnd < time_rrule_date(RRS, TempDtEnd)) and (TempDtEnd > time_rrule_date(RRD, TempDtEnd)) of 
                 true ->
-                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TosdHour*3600 + TosdMin*60);
+                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) - TosdHour*3600 - TosdMin*60);
                 false ->
-                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TossHour*3600 + TossMin*60)
+                    DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) - TossHour*3600 - TossMin*60)
             end;
         false ->
             #{standard := StanDard} = TimeZones,
@@ -158,8 +158,8 @@ ics_time_to_utc(ParsedBody) ->
             Tosd = string:chomp(lists:nth(2, binary:split(list_to_binary(TOSD), <<":">>))),
             TosdHour = list_to_integer(binary_to_list(string:slice(Tosd, 0, 3))),
             TosdMin = list_to_integer(binary_to_list(string:slice(Tosd, 3, 5))),
-            DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) + TosdHour*3600 + TosdMin*60),
-            DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) + TosdHour*3600 + TosdMin*60)
+            DtStart = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtStart) - TosdHour*3600 - TosdMin*60),
+            DtEnd = calendar:gregorian_seconds_to_datetime(calendar:datetime_to_gregorian_seconds(TempDtEnd) - TosdHour*3600 - TosdMin*60)
     end,
     {DtStart, DtEnd}.
 
