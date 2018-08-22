@@ -9,6 +9,7 @@ all() -> [get_calendar,
           get_report_of_event,
           add_event_with_unauthorized_user,
           delete_event,
+          get_freebusy_information,
           update_event
          ].
 
@@ -80,7 +81,7 @@ add_event(_Config) ->
 
     ?assertEqual({201, <<"CREATED">>}, Reply),
 
-    EventExists = ecalendar_test:is_event_in_database(<<"/testuser/calendar/valami.ics">>),
+    EventExists = ecalendar_db:event_exists(<<"/testuser/calendar/valami.ics">>),
 
     ?assertEqual(true, EventExists),
     ok.
@@ -126,7 +127,7 @@ delete_event(_Config) ->
     DeleteHeaders = ecalendar_test:custom_headers(<<"testuser">>, <<"password">>, [{<<"if-match">>, Etag}]),
     Reply2 = http_client:delete(ConnPid, "/testuser/calendar/valami.ics", DeleteHeaders),
 
-    EventExists = ecalendar_test:is_event_in_database(<<"/testuser/calendar/valami.ics">>),
+    EventExists = ecalendar_db:event_exists(<<"/testuser/calendar/valami.ics">>),
     ?assertEqual({204, false}, {Reply2, EventExists}),
 
     ok.
@@ -147,5 +148,22 @@ update_event(_Config) ->
     Reply2 = http_client:put(ConnPid, "/testuser/calendar/valami.ics", NewHeaders, NewBody),
 
     ?assertEqual({201, <<"CREATED">>}, Reply2),
+
+    ok.
+
+get_freebusy_information(_Config) ->
+    ConnPid = ecalendar_test:get_http_connection(_Config),
+    Headers = ecalendar_test:custom_headers(<<"testuser">>, <<"password">>, [{<<"content-type">>, <<"text/calendar">>}]),
+    TestBody = ecalendar_test:read_suite_data_file("test.ics", _Config),
+    Reply = http_client:put(ConnPid, "/testuser/calendar/test.ics", Headers, TestBody),
+
+    ?assertEqual({201, <<"CREATED">>}, Reply),
+
+    FreebusyBody = ecalendar_test:read_suite_data_file("freebusyrequest.ics", _Config),
+
+    {Code, Resp} = http_client:post(ConnPid, "/testuser/outbox", Headers, FreebusyBody),
+    BinList = binary:split(Resp, <<"FBTYPE=BUSY">>, [global]),
+
+    ?assertEqual({200, 2}, {Code, length(BinList)}),
 
     ok.

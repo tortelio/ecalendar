@@ -1,16 +1,17 @@
 -module(ecalendar_test).
 
+-include("ecalendar_test.hrl").
+
 -export([setup_http_connection/1,
          teardown_http_connection/1,
          is_xml_response/1,
          get_test_putbody/0,
          custom_headers/3,
+         read_suite_data_file/2,
          get_etag_of_event/1,
+         authorization_headers/2,
          get_report_request/1,
-         is_event_in_database/1,
          get_http_connection/1]).
-
--export([authorization_headers/2]).
 
 setup_http_connection(Config) ->
     {ok, ConnPid} = http_client:connect("localhost", 8080),
@@ -44,16 +45,19 @@ get_test_putbody() ->
 get_report_request(Filename) ->
     <<"<?xml version=\"1.0\" encoding=\"UTF-8\"?>
     <C:calendar-multiget xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\"><D:prop><D:getetag/><C:calendar-data/>
-    </D:prop><D:href>/jozsi/calendar/", Filename/binary, "</D:href></C:calendar-multiget>">>.
+    </D:prop><D:href>/testuser/calendar/", Filename/binary, "</D:href></C:calendar-multiget>">>.
 
 get_etag_of_event(EventName) ->
     case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
-        [{EventName, [_, Etag, _, _]}] -> Etag;
-        _ -> error
+        [{EventName, [_, Etag, _, _]}] ->
+            Etag;
+        _ ->
+            error
     end.
 
-is_event_in_database(EventName) ->
-    case ets:match_object(calendar, {EventName, ['_', '_', '_', '_']}) of
-        [] -> false;
-        _ -> true
-    end.
+suite_data_dir(Config) -> ?config(data_dir, Config).
+
+read_suite_data_file(Filename, Config) ->
+    Path = filename:join([suite_data_dir(Config), Filename]),
+    {ok, Content} = file:read_file(Path),
+    binary:replace(Content, [<<"\r\n">>, <<"\n">>], <<"\r\n">>, [global]).
