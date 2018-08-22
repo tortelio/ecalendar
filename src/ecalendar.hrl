@@ -15,6 +15,4 @@
 
 -type cal_user() :: #cal_user{}.
 
-
-
 -endif.

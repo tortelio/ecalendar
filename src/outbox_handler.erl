@@ -78,11 +78,10 @@ realm() ->
 
 freebusy(Req, State) ->
     {ok, Body, _} = read_body(Req, <<"">>),
-    Body2 = ecalendar_transform:create_freebusy_response(ecalendar_freebusy:get_response_body(Body), ecalendar_freebusy:get_recipient(Body)),
+    Body2 = ecalendar_transform:create_freebusy_response(ecalendar_freebusy:get_response_body(Body),
+                                                         ecalendar_freebusy:get_recipient(Body)),
     Req0 = cowboy_req:reply(200, #{}, Body2, Req),
     {ok, Req0, State}.
-
-
 
 %% @doc Recursive function to get the whole Request body.
 -spec read_body(Req0 :: cowboy_req:req(), Acc :: binary()) -> {atom(), binary(), Req :: cowboy_req:req()}.

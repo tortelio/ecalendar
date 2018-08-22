@@ -12,19 +12,15 @@
 -export([init/2,
          known_methods/2,
          allowed_methods/2,
-         is_authorized/2,
-         options/2]).
+         is_authorized/2
+         ]).
 
 %%====================================================================
 %% API
 %%====================================================================
 
-%% @doc Handle an OPTIONS Request.
--spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
-init(Req0 = #{method := <<"OPTIONS">>}, Opts) ->
-    {cowboy_rest, Req0, Opts};
-
 %% @doc Handles the PROPFIND requests
+-spec init(Req :: cowboy_req:req(), State :: any()) -> {atom(), Req :: cowboy_req:req(), any()}.
 init(Req0 = #{method := <<"PROPFIND">>}, State) ->
     {ok, ReqBody, _} = read_body(Req0, <<"">>),
     SkipAuth = ecalendar_transform:skip_auth(ReqBody),
@@ -108,11 +104,6 @@ is_authorized(Req, State) ->
         _ ->
             {{false, realm()}, Req, State}
     end.
-
-options(Req0, State) ->
-    Req = cowboy_req:reply(200, #{<<"DAV">> => <<"1, 2, calendar-schedule, calendar-query">>,
-                                  <<"Allow">> => <<"OPTIONS, PROPFIND, REPORT">>}, <<"">>, Req0),
-    {ok, Req, State}.
 
 %%====================================================================
 %% Internal functions

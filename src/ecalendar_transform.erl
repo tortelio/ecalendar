@@ -125,7 +125,8 @@ get_event_responses([Current | Rest], Acc, Mode) ->
                                   {Body, undefined}
                           end,
     ThisEvent = create_event_prop(CalBody, ContType, Etag),
-    EventReport = {response, [], Uri , [{propstat, [], ThisEvent, "HTTP/1.1 200 OK", undefined, undefined}], undefined, undefined, undefined},
+    EventReport = {response, [], Uri , [{propstat, [], ThisEvent, "HTTP/1.1 200 OK", undefined, undefined}],
+                   undefined, undefined, undefined},
     get_event_responses(Rest, [EventReport | Acc], Mode).
 
 create_prop_body(ReqList, Uri, User) ->

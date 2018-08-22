@@ -50,7 +50,7 @@ find(Username) ->
     end.
 
 %% @doc If username does not exists yet, add a new user to the authorization.
--spec add(Username :: binary(), Password :: binary()) -> {ok, added} | {error, exists}.
+-spec add(Username :: binary(), Password :: binary()) -> {ok, added} | {error, 'already_exist'}.
 add(Username, Password) ->
     case find(Username) of
         [] ->
@@ -64,7 +64,7 @@ add(Username, Password) ->
     end.
 
 %% @doc Delete a user's authorization data.
--spec delete(Username :: binary()) -> {ok, deleted} | {error, nexists}.
+-spec delete(Username :: binary()) -> {ok, deleted} | {error, 'missing_user'}.
 delete(Username) ->
     case find(Username) of
         [] ->
@@ -120,7 +120,7 @@ get_htpasswd_path() ->
     filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]).
 
 %% @doc Load the saved authorization data into the authorization ets.
--spec load(Path :: string() | binary()) -> {ok, FD :: pid()} | {error, Reason :: any()}.
+-spec load(Path :: string() | binary()) -> ok | {error, Reason :: any()}.
 load(Path) ->
     case file:open(Path, [read, write, binary]) of
         {ok, FD} ->

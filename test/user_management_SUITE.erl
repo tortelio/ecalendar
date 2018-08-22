@@ -1,4 +1,5 @@
 -module(user_management_SUITE).
+
 -include("ecalendar_test.hrl").
 
 -compile(export_all).
