@@ -98,6 +98,8 @@ delete_user_calendar(Username) ->
             {error, 'missing_calendar'}
     end.
 
+%% @doc Delete all user's calendar.
+-spec delete_all() -> {atom, binary()}.
 delete_all() ->
     BaseDir = code:priv_dir(?APPLICATION),
     case file:list_dir(filename:join([BaseDir, <<"data">>])) of
@@ -120,16 +122,18 @@ delete_all() ->
             {error, <<"THERE IS NO SERVER DATA">>}
     end.
 
+%% @doc Convert the time from a parsed ics body to utc.
+-spec ics_time_to_utc(ParsedBody :: binary()) -> {DtStart :: calendar:datetime(), DtEnd :: calendar:datetime()}.
 ics_time_to_utc(ParsedBody) ->
     #{events := Eventlist} = ParsedBody,
     Event = lists:nth(1, Eventlist),
     #{dtstart := Start, dtend := End} = Event,
     TempDtStart = iso8601:parse(list_to_binary(lists:nth(4, Start))),
     TempDtEnd = iso8601:parse(list_to_binary(lists:nth(4, End))),
-    %#{timezone := TimeZones} = ParsedBody,
-    TimeZone = binary_to_list(lists:nth(2, binary:split(list_to_binary(lists:nth(2, Start)), <<"=">>))),
-    DtStart = localtime:local_to_utc(TempDtStart, TimeZone),
-    DtEnd = localtime:local_to_utc(TempDtEnd, TimeZone),
+    TimeZoneStart = binary_to_list(lists:nth(2, binary:split(list_to_binary(lists:nth(2, Start)), <<"=">>))),
+    TimeZoneEnd = binary_to_list(lists:nth(2, binary:split(list_to_binary(lists:nth(2, End)), <<"=">>))),
+    DtStart = localtime:local_to_utc(TempDtStart, TimeZoneStart),
+    DtEnd = localtime:local_to_utc(TempDtEnd, TimeZoneEnd),
     io:format("~p~n", [{DtStart, DtEnd}]),
     {DtStart, DtEnd}.
 
@@ -228,7 +232,6 @@ load_files(Username, [Path | Paths]) ->
 -spec load_file(Username :: binary(), string() | binary()) -> ok.
 load_file(Username, Path) ->
     Filename = filename:basename(Path),
-    %{ok, OpenedFile} = file:open(Path, [read, binary]),
 
     {ok, RawFile} = file:read_file(Path),
     SplitRawFile = binary:split(RawFile, <<"\r\n">>),

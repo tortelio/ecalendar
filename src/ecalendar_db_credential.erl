@@ -75,6 +75,7 @@ delete(Username) ->
             {ok, deleted}
     end.
 
+%% @doc Delete all authorization data.
 delete_all() ->
     ets:delete_all_objects(authorization),
     Path = filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]),
