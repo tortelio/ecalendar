@@ -27,7 +27,7 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(delete_user, Config) ->
-    {ok, 'user_created'} = ecalendar_db:create_user(<<"testuser">>, <<"password">>),
+    {ok, 'user_created'} = ecalendar_db:create_user(<<"testuser">>, <<"password">>, <<"test@test.com">>),
     init_per_testcase(common, Config);
 
 init_per_testcase(_, Config) ->
@@ -44,16 +44,16 @@ end_per_testcase(_, Config1) ->
 %% @doc Create a not existing user.
 create_user(Config) ->
     ?assertEqual(false, ecalendar_db:user_exists(<<"testuser">>)),
-    ?assertEqual({ok, 'user_created'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>)),
+    ?assertEqual({ok, 'user_created'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>, <<"test@test.com">>)),
     ?assertEqual(true, ecalendar_db:user_exists(<<"testuser">>)),
 
     ok.
 
 %% @doc Create an existing user.
 create_existing_user(Config) ->
-    ?assertEqual({ok, 'user_created'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>)),
+    ?assertEqual({ok, 'user_created'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>, <<"test@test.com">>)),
     ?assertEqual(true, ecalendar_db:user_exists(<<"testuser">>)),
-    ?assertEqual({error, 'already_exist'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>)),
+    ?assertEqual({error, 'already_exist'}, ecalendar_db:create_user(<<"testuser">>, <<"password">>, <<"test@test.com">>)),
 
     ok.
 

@@ -34,11 +34,11 @@ end_per_suite(_Config) ->
 %%------------------------------------------------------------------------------
 
 init_per_testcase(multiple_user_event, Config1) ->
-    ecalendar_db:create_user(<<"testuserB">>, <<"password">>),
+    ecalendar_db:create_user(<<"testuserB">>, <<"password">>, <<"test@test.com">>),
     init_per_testcase(common, Config1);
 
 init_per_testcase(_, Config1) ->
-    ecalendar_db:create_user(<<"testuser">>, <<"password">>),
+    ecalendar_db:create_user(<<"testuser">>, <<"password">>, <<"test@test.com">>),
     Config2 = ecalendar_test:setup_http_connection(Config1),
 
     Config2.
