@@ -60,7 +60,9 @@ find_user_events([Current | Rest], User, Acc) ->
 get_username(FreebusyData) ->
     Part = lists:nth(3, lists:nth(4, FreebusyData)),
     Bin = binary:list_to_bin(Part),
-    lists:nth(1, binary:split(Bin, <<"@">>)).
+    io:format("~p~n", [Bin]),
+    ecalendar_db:get_user_by_email(Bin).
+    %lists:nth(1, binary:split(Bin, <<"@">>)).
 
 %% @doc Returns the start and end time of the input event in UTC timezone
 process_event(#{events := Events} = Parsed) ->

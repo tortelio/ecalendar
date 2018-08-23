@@ -15,6 +15,7 @@
          user_exists/1,
          find/1,
          get_user_email/1,
+         get_username_by_email/1,
          add/3,
          delete/1,
          delete_all/0]).
@@ -58,6 +59,10 @@ get_user_email(Username) ->
         _ ->
             []
     end.
+
+get_username_by_email(Email) ->
+    [{Username, {Password, Email}}] = ets:match_object(authorization, {'_', {'_', Email}}),
+    Username.
 
 
 %% @doc If username does not exists yet, add a new user to the authorization.

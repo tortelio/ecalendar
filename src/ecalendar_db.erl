@@ -20,6 +20,7 @@
          get_component/1,
          get_user_list/1,
          get_user_email/1,
+         get_user_by_email/1,
          get_utc_time/1,
          user_exists/1
         ]).
@@ -98,6 +99,9 @@ get_user_list(Username) ->
 -spec get_user_email(Username :: binary()) -> binary().
 get_user_email(Username) ->
     ecalendar_db_credential:get_user_email(Username).
+
+get_user_by_email(Email) ->
+    ecalendar_db_credential:get_username_by_email(Email).
 
 get_utc_time(ParsedData) ->
     ecalendar_db_calendar:ics_time_to_utc(ParsedData).
