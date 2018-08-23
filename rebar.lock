@@ -8,7 +8,7 @@
   1},
  {<<"eics">>,
   {git,"https://github.com/tortelio/eics.git",
-       {ref,"845b76ea2e75168de4d989febe36c0fbbadf48e1"}},
+       {ref,"697f250bdb38283480da547f0089a180d52a5b3b"}},
   0},
  {<<"erlang_localtime">>,
   {git,"https://github.com/dmitryme/erlang_localtime",
