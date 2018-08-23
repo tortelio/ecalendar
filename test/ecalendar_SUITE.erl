@@ -26,7 +26,6 @@ init_per_suite(Config) ->
 
 end_per_suite(_Config) ->
     ok = application:stop(gun),
-    %ok = application:stop(ecalendar),
     ok.
 
 %%------------------------------------------------------------------------------
@@ -157,6 +156,7 @@ get_freebusy_information(_Config) ->
     FreebusyBody = ecalendar_test:read_suite_data_file("freebusyrequest.ics", _Config),
 
     {Code, Resp} = http_client:post(ConnPid, "/testuser/outbox", Headers, FreebusyBody),
+
     BinList = binary:split(Resp, <<"FBTYPE=BUSY">>, [global]),
 
     ?assertEqual({200, 2}, {Code, length(BinList)}),
