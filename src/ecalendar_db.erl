@@ -11,7 +11,7 @@
 %% API
 -export([start/0,
          drop/0,
-         create_user/2,
+         create_user/3,
          delete_user/1,
          authenticate_user/2,
          delete_event/1,
@@ -19,6 +19,7 @@
          event_exists/1,
          get_component/1,
          get_user_list/1,
+         get_user_email/1,
          get_utc_time/1,
          user_exists/1
         ]).
@@ -38,9 +39,9 @@ drop() ->
     ok.
 
 %% @doc Create a new user.
--spec create_user(Username :: binary(), Password :: binary()) -> {ok | error, binary()}.
-create_user(Username, Password) ->
-    case ecalendar_db_credential:add(Username, Password) of
+-spec create_user(Username :: binary(), Password :: binary(), Email :: binary()) -> {ok | error, binary()}.
+create_user(Username, Password, Email) ->
+    case ecalendar_db_credential:add(Username, Password, Email) of
         {ok, _} ->
             ecalendar_db_calendar:add_new_user_calendar(Username),
             {ok, 'user_created'};
@@ -49,7 +50,7 @@ create_user(Username, Password) ->
     end.
 
 %% @doc Delete a user.
--spec delete_user(Username :: binary()) -> {ok, deleted} | {error, any}.
+-spec delete_user(Username :: binary()) -> {ok, deleted} | {error, any()}.
 delete_user(Username) ->
     case ecalendar_db_calendar:delete_user_calendar(Username) of
         {ok, _} ->
@@ -64,9 +65,7 @@ authenticate_user(Username, Password) ->
     case ecalendar_db_credential:find(Username) of
         [Username, Password] ->
             true;
-        [Username | _] ->
-            false;
-        [] ->
+        _ ->
             false
     end.
 
@@ -94,6 +93,11 @@ get_component(Key) ->
 -spec get_user_list(Username :: binary()) -> [{Filename :: binary(), [binary()]}].
 get_user_list(Username) ->
     ecalendar_db_calendar:get_user_components(Username).
+
+%% @doc Gets the email address of the user
+-spec get_user_email(Username :: binary()) -> binary().
+get_user_email(Username) ->
+    ecalendar_db_credentail:get_user_email(Username).
 
 get_utc_time(ParsedData) ->
     ecalendar_db_calendar:ics_time_to_utc(ParsedData).

@@ -28,16 +28,21 @@ start() ->
     ets:insert(model, {caldav, Model}),
     ok.
 
-%% @doc Creates the XML response for the request
+%% @doc Creates the XML response for PROPFIND and REPORT requests
+-spec create_response(binary(), binary(), binary()) -> binary().
 create_response(Username, RequestBody, UserURI) ->
     RequestList = parse_request(RequestBody),
     Response = get_requested_data(Username, UserURI, RequestList),
     write_response(Response).
 
+%% @doc Creates the XML response for freebusy requests
+-spec create_freebusy_response(binary(), binary()) -> binary().
 create_freebusy_response(FreeBusyBody, Attendee) ->
     Response = {'C:schedule-response', [], {'C:response', [], {'C:recipient', [], Attendee}, "2.0;Success", FreeBusyBody}},
     write_response(Response).
 
+%% @doc Checks if authorization is neccesary
+-spec skip_auth(binary()) -> true | false.
 skip_auth(RequestBody) ->
     RequestList = parse_request(RequestBody),
     lists:member(owner, RequestList).
@@ -157,7 +162,8 @@ get_element(Element, Uri, User) ->
         'C:calendar-home-set' ->
             {'C:calendar-home-set', [], Uri};
         'C:calendar-user-address-set' ->
-            {'C:calendar-user-address-set', [], <<"mailto:", User/binary, "@example.com">>};
+            Email = ecalendar_db:get_user_email(User),
+            {'C:calendar-user-address-set', [], <<"mailto:", Email/binary>>};
         'C:schedule-inbox-URL' ->
             {'C:schedule-inbox-URL', [], <<Uri/binary, "inbox">>};
         'C:schedule-outbox-URL' ->

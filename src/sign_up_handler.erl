@@ -23,26 +23,20 @@
 init(Req0=#{method := <<"POST">>}, State) ->
     Username = cowboy_req:header(<<"username">>, Req0),
     Password = cowboy_req:header(<<"password">>, Req0),
-    case Username of
-        undefined ->
-            Body = <<"Missing username header">>,
-            Req = cowboy_req:reply(400, #{}, Body, Req0);
-        _ ->
-            case Username of
-                undefined ->
-                    Body = <<"Missing password header">>,
-                    Req = cowboy_req:reply(400, #{}, Body, Req0);
-                _ ->
-                    {Ret, _} = ecalendar_db:create_user(Username, Password),
-                    {RetCode, RetBody} = case Ret of
-                        ok ->
-                            {200, <<"User created.">>};
-                        error ->
-                            {409, <<"User already exists.">>}
-                    end,
-                    Req = cowboy_req:reply(RetCode, #{}, RetBody, Req0)
-            end
-    end,
+    Email = cowboy_req:header(<<"email">>, Req0),
+    {RetCode, RetBody} = case lists:member(undefined, [Username, Password, Email]) of
+                             true ->
+                                 {400, <<"Missing header">>};
+                             false ->
+                                 {Ret, _} = ecalendar_db:create_user(Username, Password, Email),
+                                 case Ret of
+                                     ok ->
+                                         {200, <<"User created.">>};
+                                     error ->
+                                         {409, <<"User already exists.">>}
+                                 end
+                         end,
+    Req = cowboy_req:reply(RetCode, #{}, RetBody, Req0),
     {ok, Req, State};
 
 %% @doc Switch to REST handler behavior.
