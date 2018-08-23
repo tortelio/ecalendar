@@ -97,7 +97,7 @@ get_user_list(Username) ->
 %% @doc Gets the email address of the user
 -spec get_user_email(Username :: binary()) -> binary().
 get_user_email(Username) ->
-    ecalendar_db_credentail:get_user_email(Username).
+    ecalendar_db_credential:get_user_email(Username).
 
 get_utc_time(ParsedData) ->
     ecalendar_db_calendar:ics_time_to_utc(ParsedData).
