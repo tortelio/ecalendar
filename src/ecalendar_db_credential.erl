@@ -148,7 +148,7 @@ create_auth_data('$end_of_table', Acc) ->
     Acc;
 
 create_auth_data(Username, Acc) ->
-    [{Username, PassHash, _}] = ets:lookup(authorization, Username),
+    [{Username, {PassHash, _}}] = ets:lookup(authorization, Username),
     create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", PassHash/binary, "\n">>).
 
 %% @doc Encode the uncoded password in base64.
@@ -173,8 +173,6 @@ load_credentials(Path) ->
         {error, Reason} ->
             {error, Reason}
     end.
-
-
 
 %% @doc Load the saved authorization data into the authorization ets.
 -spec load_address(Path :: string() | binary()) -> ok | {error, Reason :: any()}.
