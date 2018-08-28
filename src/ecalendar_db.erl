@@ -44,7 +44,7 @@ drop() ->
 create_user(Username, Password, Email) ->
     case ecalendar_db_credential:add(Username, Password, Email) of
         {ok, _} ->
-            ecalendar_db_calendar:add_new_user_calendar(Username),
+            ecalendar_db_calendar:add_new_user_calendar(Username, Email),
             {ok, 'user_created'};
         {error, Reason} ->
             {error, Reason}
@@ -95,14 +95,18 @@ get_component(Key) ->
 get_user_list(Username) ->
     ecalendar_db_calendar:get_user_components(Username).
 
-%% @doc Gets the email address of the user
+%% @doc Get the email address of the user
 -spec get_user_email(Username :: binary()) -> binary().
 get_user_email(Username) ->
     ecalendar_db_credential:get_user_email(Username).
 
+%% @doc Get the user by his email address.
+-spec get_user_by_email(Email :: binary()) -> binary().
 get_user_by_email(Email) ->
     ecalendar_db_credential:get_username_by_email(Email).
 
+%% @doc Convert the time from a parsed ics body to utc.
+-spec get_utc_time(ParsedBody :: binary()) -> {calendar:datetime(), calendar:datetime()}.
 get_utc_time(ParsedData) ->
     ecalendar_db_calendar:ics_time_to_utc(ParsedData).
 

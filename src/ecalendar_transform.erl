@@ -57,7 +57,7 @@ write_response(Response) ->
     {ok, OutPut} = erlsom:write(Response, Model),
     binary:replace(binary:list_to_bin(OutPut), <<"><">>, <<">\r\n<">>, [global]).
 
-% @doc Reads the XML model from the ets
+%% @doc Reads the XML model from the ets
 get_model() ->
     [{_, Model}] = ets:lookup(model, caldav),
     Model.

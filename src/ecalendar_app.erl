@@ -36,8 +36,6 @@ start(_StartType, _StartArgs) ->
     ok = ecalendar_transform:start(),
 
     %% Load data
-    %ecalendar_file:load_authorization_data(),
-    %ecalendar_file:load_calendar_data(),
     ecalendar_sup:start_link().
 
 %%--------------------------------------------------------------------

@@ -29,8 +29,7 @@ start() ->
 
     % Load credentials from htpasswd file
     ok = load_credentials(get_file_path(<<".htpasswd">>)),
-    ok = load_address(get_file_path(<<".address">>)),
-
+    {ok, _}= load_address(),
     ok.
 
 %%====================================================================
@@ -52,6 +51,8 @@ find(Username) ->
             []
     end.
 
+%% @doc Get the email address of the user
+-spec get_user_email(Username :: binary()) -> Email :: binary() | [].
 get_user_email(Username) ->
     case ets:lookup(authorization, Username) of
         [{Username, {_, Email}}] ->
@@ -60,8 +61,10 @@ get_user_email(Username) ->
             []
     end.
 
+%% @doc Get the user by his email address.
+-spec get_username_by_email(Email :: binary()) -> Username :: binary().
 get_username_by_email(Email) ->
-    [{Username, {Password, Email}}] = ets:match_object(authorization, {'_', {'_', Email}}),
+    [{Username, {_, Email}}] = ets:match_object(authorization, {'_', {'_', Email}}),
     Username.
 
 
@@ -74,9 +77,6 @@ add(Username, Password, Email) ->
             {ok, OpenedFile} = file:open(filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]), [append, binary]),
             file:write(OpenedFile, <<Username/binary, ":", PasswordEncoded/binary, "\n">>),
             file:close(OpenedFile),
-            {ok, OpenedFile2} = file:open(filename:join([code:priv_dir(?APPLICATION), <<".address">>]), [append, binary]),
-            file:write(OpenedFile2, <<Username/binary, ":", Email/binary, "\n">>),
-            file:close(OpenedFile2),
             ets:insert(authorization, {Username, {PasswordEncoded, Email}}),
             {ok, added};
         _ ->
@@ -101,11 +101,7 @@ delete_all() ->
     Path = filename:join([code:priv_dir(?APPLICATION), <<".htpasswd">>]),
     file:delete(Path),
     {ok, OpenedFile} = file:open(Path, [write, read, binary]),
-    file:close(OpenedFile),
-    Path2 = filename:join([code:priv_dir(?APPLICATION), <<".address">>]),
-    file:delete(Path2),
-    {ok, OpenedFile2} = file:open(Path2, [write, read, binary]),
-    file:close(OpenedFile2).
+    file:close(OpenedFile).
 
 %%====================================================================
 %% Internal functions
@@ -119,25 +115,7 @@ save_auth_data_to_file() ->
     file:delete(Path),
     {ok, OpenedFile} = file:open(Path, [write, read, binary]),
     file:write(OpenedFile, AuthData),
-    file:close(OpenedFile),
-    AdressData = create_address_data(),
-    Path2 = filename:join([code:priv_dir(?APPLICATION), <<".address">>]),
-    file:delete(Path2),
-    {ok, OpenedFile2} = file:open(Path2, [write, read, binary]),
-    file:write(OpenedFile2, AdressData),
-    file:close(OpenedFile2).
-
-%% @doc Recursive function for authorization data saving.
--spec create_address_data() -> Acc :: binary().
-create_address_data() ->
-    create_address_data(ets:first(authorization), <<"">>).
-
-create_address_data('$end_of_table', Acc) ->
-    Acc;
-
-create_address_data(Username, Acc) ->
-    [{Username, {_, Email}}] = ets:lookup(authorization, Username),
-    create_auth_data(ets:next(authorization, Username), <<Acc/binary, Username/binary, ":", Email/binary, "\n">>).
+    file:close(OpenedFile).
 
 %% @doc Recursive function for authorization data saving.
 -spec create_auth_data() -> Acc :: binary().
@@ -175,16 +153,21 @@ load_credentials(Path) ->
     end.
 
 %% @doc Load the saved authorization data into the authorization ets.
--spec load_address(Path :: string() | binary()) -> ok | {error, Reason :: any()}.
-load_address(Path) ->
-    case file:open(Path, [read, write, binary]) of
-        {ok, FD} ->
-            Credentials = read_user_credentials(FD),
-            ok = save_address(Credentials),
-            ok = file:close(FD),
-            ok;
-        {error, Reason} ->
-            {error, Reason}
+-spec load_address() -> ok | {error, Reason :: any()}.
+load_address() ->
+    BaseDir = code:priv_dir(?APPLICATION),
+    case file:list_dir(filename:join([BaseDir, <<"data">>])) of
+        {ok, UsersDirs} ->
+            lists:foreach(fun(UserDir) ->
+                                    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, UserDir, <<"event_calendar.ics">>])),
+                                    ParsedData = eics:decode(CalendarData),
+                                    #{'x-valami' := CalAddress} = ParsedData,
+                                    UserAddress = lists:nth(2, binary:split(list_to_binary(lists:nth(4, CalAddress)), <<":">>)),
+                                    save_address({list_to_binary(UserDir), UserAddress})
+                          end, UsersDirs),
+            {ok, <<"SERVER CALENDARS LOADED">>};
+        {error, _} ->
+            {ok, <<"THERE IS NO SERVER DATA">>}
     end.
 
 %% @doc Recursive function to load all the authoriztion data.
@@ -219,12 +202,8 @@ save({User, Password}) ->
     ets:insert(authorization, {User, {Password}}),
     ok.
 
-%% @doc Save the authorization credentials into the authorization ets.
--spec save_address(Credentials :: list()) -> ok.
-save_address(Credentials) when is_list(Credentials) ->
-    [ok = save_address(Credential) || Credential <- Credentials],
-    ok;
-
+%% @doc Add the email of a user to the authorization ets.
+-spec save_address({User :: binary(), Email :: binary()}) -> ok.
 save_address({User, Email}) ->
     [{User, Password}] = ets:lookup(authorization, User),
     Data = erlang:insert_element(2, Password, Email),

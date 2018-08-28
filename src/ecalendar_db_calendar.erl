@@ -12,7 +12,7 @@
 %% API
 -export([start/0,
          is_exists/1,
-         add_new_user_calendar/1,
+         add_new_user_calendar/2,
          add_component/2,
          get_component/1,
          get_user_components/1,
@@ -58,13 +58,32 @@ add_component(URI, Value) ->
     Username = lists:nth(3, Value),
     write_to_file(Username, URI).
 
-%% @doc Create an empty calendar directory for the new user.
--spec add_new_user_calendar(Username :: binary()) -> ok.
-add_new_user_calendar(Username) ->
+%% @doc Create an empty calendar directory and an empty calendar for the new user.
+-spec add_new_user_calendar(Username :: binary(), Email :: binary()) -> ok.
+add_new_user_calendar(Username, Email) ->
     BaseDir = code:priv_dir(?APPLICATION),
-    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])).
-    %{ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"event_calendar.ics">>]), [write, read, binary]),
-    %file:close(OpenedFile).
+    filelib:ensure_dir(filename:join([BaseDir, <<"data/">>, Username, <<"calendar/">>, <<"valami">>])),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/">>, Username, <<"event_calendar.ics">>]), [write, read, binary]),
+    EmptyCal = eics:encode(#{events => [], 
+                                    prodid => ["PRODID", 58, "Ecalendar 0.0.1", "\r\n"], 
+                                    version => ["VERSION", 58, "2.0", "\r\n"], 
+                                    todos => [], 
+                                    type => calendar, 
+                                    'x-valami' => ["X-VALAMI", 59, "CN", 61, Username, 58, "mailto", 58, Email, "\r\n"], 
+                                    'x-cal-address' => ["X-CAL-ADDRESS", 58, Email, "\r\n"], 
+                                    'x-owner' => ["X-OWNER", 58, Username, "\r\n"], 
+                                    timezones => [#{standard => 
+                                                             #{dtstart => ["DTSTART", 58, [["1970","10","25"], 84, ["03","00","00"]], "\r\n"], 
+                                                             type => standard, 
+                                                             tzname => ["TZNAME", 58, "UTC", "\r\n"], 
+                                                             tzoffsetto => ["TZOFFSETTO", 58, [43,"00","00"], "\r\n"], 
+                                                             tzoffsetfrom => ["TZOFFSETFROM", 58, [43,"00","00"], "\r\n"]}, 
+                                                             type => timezone, 
+                                                             tzid => ["TZID", 58, "UTC", "\r\n"]
+                                                   }]
+                            }),
+    file:write(OpenedFile, EmptyCal),
+    file:close(OpenedFile).
 
 %% @doc Delete the specified calendar component file.
 -spec delete_data(Filename :: binary()) -> ok.
@@ -83,6 +102,7 @@ delete_data(URI) ->
 delete_user_calendar(Username) ->
     io:format("Deleting user~n"),
     BaseDir = code:priv_dir(?APPLICATION),
+    file:delete(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
     case file:list_dir(filename:join([BaseDir, <<"data">>, Username, <<"calendar">>])) of
         {ok, Filenames} ->
             lists:foreach(fun(Filename1) ->
@@ -104,6 +124,7 @@ delete_all() ->
     case file:list_dir(filename:join([BaseDir, <<"data">>])) of
         {ok, UsersDirs} ->
             lists:foreach(fun(UserDir) ->
+                                  file:delete(filename:join([BaseDir, <<"data">>, UserDir, <<"event_calendar.ics">>])),
                                   case file:list_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])) of
                                       {ok, UserEvents} ->
                                           lists:foreach(fun(UserEvent) ->
