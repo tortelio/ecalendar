@@ -51,9 +51,38 @@ get_component(Key) ->
 get_user_components(User) ->
     ets:match_object(calendar, {'_', ['_', '_', User, '_']}).
 
-%% @doc Add a new component to the database.
+%% @doc Add a new component to the database and add the timezone to the user's calendar
 -spec add_component(Filename :: binary(), Value :: [binary()]) -> ok.
 add_component(URI, Value) ->
+    % get the timezones from the user's calendar
+    CalendarTZIDList = get_calendar_tzids(lists:nth(3, Value)),
+    % check if the new component contains timezones that the calendar does not and returns them as a list
+    ParsedICS = lists:nth(4, Value),
+    TimezonesList = maps:get(timezones, ParsedICS),
+    NewTZList = lists:foldl(fun(Timezone, TimezoneIDs) -> 
+                                                        case lists:member(lists:nth(3, maps:get(tzid, Timezone)), CalendarTZIDList) of
+                                                            true ->
+                                                                TimezoneIDs;
+                                                            false ->
+                                                                lists:append(TimezoneIDs, [Timezone])
+                                                        end
+                                                        end,
+                                                            [], TimezonesList),
+    % eics:decode(calendar),
+    BaseDir = code:priv_dir(?APPLICATION),
+    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, lists:nth(3, Value), <<"event_calendar.ics">>])),
+    ParsedCalendar = eics:decode(CalendarData),
+    OldTZ = maps:get(timezones, ParsedCalendar),
+    % append decoded calendar with elements from NewTZList
+    NewTZ = lists:append(maps:get(timezones, ParsedCalendar), NewTZList),
+    % eics encode(appended calendar)
+    NewCalendar = maps:put(timezones, NewTZ, ParsedCalendar),
+    % overwrite user's old event_calendar.ics
+    BaseDir = code:priv_dir(?APPLICATION),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/">>, lists:nth(3, Value), <<"event_calendar.ics">>]), [write, read, binary]),
+    file:write(OpenedFile, eics:encode(NewCalendar)),
+    file:close(OpenedFile),
+    % add the new event to the ets
     ets:insert(calendar,{URI, Value}),
     Username = lists:nth(3, Value),
     write_to_file(Username, URI).
@@ -69,18 +98,9 @@ add_new_user_calendar(Username, Email) ->
                                     version => ["VERSION", 58, "2.0", "\r\n"], 
                                     todos => [], 
                                     type => calendar, 
-                                    'x-valami' => ["X-VALAMI", 59, "CN", 61, Username, 58, "mailto", 58, Email, "\r\n"], 
+                                    'x-user-address' => ["X-USER-ADDRESS", 59, "CN", 61, Username, 58, "mailto", 58, Email, "\r\n"], 
                                     'x-cal-address' => ["X-CAL-ADDRESS", 58, Email, "\r\n"], 
-                                    'x-owner' => ["X-OWNER", 58, Username, "\r\n"], 
-                                    timezones => [#{standard => 
-                                                             #{dtstart => ["DTSTART", 58, [["1970","10","25"], 84, ["03","00","00"]], "\r\n"], 
-                                                             type => standard, 
-                                                             tzname => ["TZNAME", 58, "UTC", "\r\n"], 
-                                                             tzoffsetto => ["TZOFFSETTO", 58, [43,"00","00"], "\r\n"], 
-                                                             tzoffsetfrom => ["TZOFFSETFROM", 58, [43,"00","00"], "\r\n"]}, 
-                                                             type => timezone, 
-                                                             tzid => ["TZID", 58, "UTC", "\r\n"]
-                                                   }]
+                                    'x-owner' => ["X-OWNER", 58, Username, "\r\n"]
                             }),
     file:write(OpenedFile, EmptyCal),
     file:close(OpenedFile).
@@ -233,3 +253,17 @@ write_to_file(User, URI) ->
     file:write(OpenedFile, <<ComponentEtag/binary, "\r\n", ComponentData/binary>>),
     file:close(OpenedFile),
     io:format("EVENT SAVED~n").
+
+%% @doc Get the TZID list of all timezones in a user's calendar.
+-spec get_calendar_tzids(Username :: binary()) -> [binary()].
+get_calendar_tzids(Username) ->
+    BaseDir = code:priv_dir(?APPLICATION),
+    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
+    ParsedCalendar = eics:decode(CalendarData),
+    TimezonesList = maps:get(timezones, ParsedCalendar),
+    CalendarTZIDList = lists:foldl(fun(Timezone, TimezoneIDs) -> 
+                                                        Tzid = lists:nth(3, maps:get(tzid, Timezone)),
+                                                        lists:append(TimezoneIDs, [Tzid])
+                                                        end,
+                                                            [], TimezonesList).
+    %CalendarTZIDList.

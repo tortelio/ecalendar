@@ -161,7 +161,7 @@ load_address() ->
             lists:foreach(fun(UserDir) ->
                                     {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, UserDir, <<"event_calendar.ics">>])),
                                     ParsedData = eics:decode(CalendarData),
-                                    #{'x-valami' := CalAddress} = ParsedData,
+                                    #{'x-user-address' := CalAddress} = ParsedData,
                                     UserAddress = lists:nth(2, binary:split(list_to_binary(lists:nth(4, CalAddress)), <<":">>)),
                                     save_address({list_to_binary(UserDir), UserAddress})
                           end, UsersDirs),
