@@ -107,12 +107,12 @@ generate_etag(Req, State) ->
 %%====================================================================
 
 %% @doc Generate etag for a PUT request.
--spec create_etag(Req :: cowboy_req:req()) -> binary().
-create_etag(Req) ->
-    #{path := Path} = Req,
-    Mtime = erlang:localtime(),
-    Length = cowboy_req:parse_header(<<"content-length">>, Req),
-    Result = integer_to_binary(erlang:phash2({Path, Length, Mtime}, 16#ffffffff)),
+-spec create_etag(ParsedICS :: #{}, Length :: binary()) -> binary().
+create_etag(ParsedICS, Length) ->
+    EventMapList = maps:get(events, ParsedICS),
+    Mtime = lists:nth(3, maps:get('last-modified', lists:nth(1, EventMapList))),
+    UID = lists:nth(3, maps:get('uid', lists:nth(1, EventMapList))),
+    Result = integer_to_binary(erlang:phash2({UID, Length, Mtime}, 16#ffffffff)),
     <<"\"", Result/binary, "\"">>.
 
 %% @doc Recursive function to get the whole Request body.
@@ -129,9 +129,9 @@ handle_request(<<"PUT">>, Req) ->
     Username = cowboy_req:binding(username, Req),
     Uri = cowboy_req:uri(Req, #{host => undefined}),
     Filename = cowboy_req:binding(component, Req),
-    Etag = create_etag(Req),
     {ok, Body2, _} = read_body(Req, <<"">>),
     ParsedBody = eics:decode(Body2),
     Uri2 = iolist_to_binary(Uri),
+    Etag = create_etag(ParsedBody, cowboy_req:parse_header(<<"content-length">>, Req)),
     ecalendar_db:insert_event(Uri2, [Body2, Etag, Username, ParsedBody]),
     {201, <<"CREATED">>}.
