@@ -106,7 +106,7 @@ generate_etag(Req, State) ->
 %% Internal functions
 %%====================================================================
 
-%% @doc Generate etag for a PUT request.
+%% @doc Generate etag for an ics event PUT request.
 -spec create_etag(ParsedICS :: #{}, Length :: binary()) -> binary().
 create_etag(ParsedICS, Length) ->
     EventMapList = maps:get(events, ParsedICS),

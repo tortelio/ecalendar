@@ -72,15 +72,38 @@ add_component(URI, Value) ->
     BaseDir = code:priv_dir(?APPLICATION),
     {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, lists:nth(3, Value), <<"event_calendar.ics">>])),
     ParsedCalendar = eics:decode(CalendarData),
-    OldTZ = maps:get(timezones, ParsedCalendar),
     % append decoded calendar with elements from NewTZList
     NewTZ = lists:append(maps:get(timezones, ParsedCalendar), NewTZList),
     % eics encode(appended calendar)
     NewCalendar = maps:put(timezones, NewTZ, ParsedCalendar),
-    % overwrite user's old event_calendar.ics
+    % create the updated event list for the user's calendar
+    CalendarEventList = maps:get(events, ParsedCalendar),
+    EventList = maps:get(events, ParsedICS),
+    NewEventList = case CalendarEventList of 
+        [] ->
+            EventList;
+        _ ->
+            lists:foldl(fun(Event, NewEvents) -> 
+                                            case lists:nth(3, maps:get(uid, lists:nth(1, EventList))) =:= lists:nth(3, maps:get(uid, Event)) of
+                                                true ->
+                                                    lists:append(NewEvents, EventList);
+                                                false ->
+                                                    lists:append(NewEvents, [Event])
+                                            end
+                                            end,
+                                                [], CalendarEventList)
+    end,
+    EndList = case lists:member(lists:nth(1, EventList) ,NewEventList) of
+        true ->
+            NewEventList;
+        false ->
+        lists:append(NewEventList, EventList)
+    end,
+    % update user's calendar with timezones and the new event
+    NewCalendar2 = maps:put(events, EndList, NewCalendar),
     BaseDir = code:priv_dir(?APPLICATION),
     {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data/">>, lists:nth(3, Value), <<"event_calendar.ics">>]), [write, read, binary]),
-    file:write(OpenedFile, eics:encode(NewCalendar)),
+    file:write(OpenedFile, eics:encode(NewCalendar2)),
     file:close(OpenedFile),
     % add the new event to the ets
     ets:insert(calendar,{URI, Value}),
@@ -105,10 +128,32 @@ add_new_user_calendar(Username, Email) ->
     file:write(OpenedFile, EmptyCal),
     file:close(OpenedFile).
 
-%% @doc Delete the specified calendar component file.
+%% @doc Delete the specified calendar component.
 -spec delete_data(Filename :: binary()) -> ok.
 delete_data(URI) ->
+io:format("~p~n", [URI]),
+    Uid = binary_to_list(lists:nth(1, binary:split(filename:basename(URI), <<".">>))),
+    Username = lists:nth(1, binary:split(URI, <<"calendar">>)),
     BaseDir = code:priv_dir(?APPLICATION),
+    io:format("~p~n", [filename:join([BaseDir, <<"data", Username/binary, "event_calendar.ics">>])]),
+    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data", Username/binary, "event_calendar.ics">>])),
+    ParsedCalendar = eics:decode(CalendarData),
+    EventList = maps:get(events, ParsedCalendar),
+    DeletedEventList = lists:foldl(fun(Event, Events) ->
+                                        case (Uid =:= lists:nth(3, maps:get(uid, Event))) of
+                                            true ->
+                                                Events;
+                                            false ->
+                                                lists:append(Events, [Event])
+                                        end
+                                        end,
+                                        [], EventList),
+    NewCalendar = maps:put(events, DeletedEventList, ParsedCalendar),
+    file:delete(filename:join([BaseDir, <<"data", Username/binary, "event_calendar.ics">>])),
+    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data", Username/binary, "event_calendar.ics">>]), [write, read, binary]),
+    file:write(OpenedFile, eics:encode(NewCalendar)),
+    file:close(OpenedFile),
+
     FullURI = filename:join([BaseDir, <<"data", URI/binary>>]),
     io:format("DELETING EVENT FILE~n"),
     io:format(FullURI),
@@ -144,7 +189,6 @@ delete_all() ->
     case file:list_dir(filename:join([BaseDir, <<"data">>])) of
         {ok, UsersDirs} ->
             lists:foreach(fun(UserDir) ->
-                                  file:delete(filename:join([BaseDir, <<"data">>, UserDir, <<"event_calendar.ics">>])),
                                   case file:list_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])) of
                                       {ok, UserEvents} ->
                                           lists:foreach(fun(UserEvent) ->
@@ -152,6 +196,7 @@ delete_all() ->
                                                                 delete_data(filename:join([<<"/">>, UserDir, <<"calendar">>, UserEvent]))
                                                         end, UserEvents),
                                           file:del_dir(filename:join([BaseDir, <<"data">>, UserDir, <<"calendar">>])),
+                                          file:delete(filename:join([BaseDir, <<"data">>, UserDir, <<"event_calendar.ics">>])),
                                           file:del_dir(filename:join([BaseDir, <<"data">>, UserDir]));
                                       {error, _} ->
                                           {error, <<"Calendar does not exist">>}
@@ -191,9 +236,7 @@ load() ->
     io:format("All users: "),
     io:format(UsersDirs),
     io:format("~n"),
-
     ok = load_calendars([filename:join([Path, D, <<"calendar/">>]) || D <- UsersDirs]),
-
     io:format("LOADING FINISHED~n").
 
 %% @doc Recursive function that loads the calendars of the users into the calendar ets.
@@ -206,9 +249,7 @@ load_calendars([Directory | Directories]) ->
 
 load_calendar(Directory) ->
     {ok, Filenames} = file:list_dir(Directory),
-
     Username = filename:basename(filename:dirname(Directory)),
-
     io:format(<<Username/binary, "'s calendar is loading...">>),
     ok = load_files(Username, [filename:join([Directory, Fn]) || Fn <- Filenames]),
     io:format("Calendar loading finished~n~n"),
@@ -227,7 +268,6 @@ load_files(Username, [Path | Paths]) ->
 -spec load_file(Username :: binary(), string() | binary()) -> ok.
 load_file(Username, Path) ->
     Filename = filename:basename(Path),
-
     {ok, RawFile} = file:read_file(Path),
     SplitRawFile = binary:split(RawFile, <<"\r\n">>),
     Etag = lists:nth(1, SplitRawFile),
@@ -261,9 +301,21 @@ get_calendar_tzids(Username) ->
     {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
     ParsedCalendar = eics:decode(CalendarData),
     TimezonesList = maps:get(timezones, ParsedCalendar),
-    CalendarTZIDList = lists:foldl(fun(Timezone, TimezoneIDs) -> 
-                                                        Tzid = lists:nth(3, maps:get(tzid, Timezone)),
-                                                        lists:append(TimezoneIDs, [Tzid])
-                                                        end,
-                                                            [], TimezonesList).
-    %CalendarTZIDList.
+    lists:foldl(fun(Timezone, TimezoneIDs) -> 
+                                        Tzid = lists:nth(3, maps:get(tzid, Timezone)),
+                                        lists:append(TimezoneIDs, [Tzid])
+                                        end,
+                                        [], TimezonesList).
+
+%% @doc Get the TZID list of all timezones in a user's calendar.
+-spec get_calendar_events(Username :: binary()) -> [binary()].
+get_calendar_events(Username) ->
+    BaseDir = code:priv_dir(?APPLICATION),
+    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
+    ParsedCalendar = eics:decode(CalendarData),
+    EventList = maps:get(events, ParsedCalendar),
+    lists:foldl(fun(Event, EventUIDs) -> 
+                                        Uid = lists:nth(3, maps:get(uid, Event)),
+                                        lists:append(EventUIDs, [Uid])
+                                        end,
+                                        [], EventList).
