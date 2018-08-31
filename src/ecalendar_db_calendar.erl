@@ -106,9 +106,9 @@ add_component(URI, Value) ->
     file:write(OpenedFile, eics:encode(NewCalendar2)),
     file:close(OpenedFile),
     % add the new event to the ets
-    ets:insert(calendar,{URI, Value}),
-    Username = lists:nth(3, Value),
-    write_to_file(Username, URI).
+    ets:insert(calendar,{URI, Value}).
+    %Username = lists:nth(3, Value),
+    %write_to_file(Username, URI).
 
 %% @doc Create an empty calendar directory and an empty calendar for the new user.
 -spec add_new_user_calendar(Username :: binary(), Email :: binary()) -> ok.
@@ -230,69 +230,75 @@ load() ->
     BaseDir = code:priv_dir(?APPLICATION),
     filelib:ensure_dir(filename:join([BaseDir, <<"data/valami">>])),
     Path = filename:join([BaseDir, <<"data/">>]),
-    filelib:ensure_dir(Path),
     io:format("~nLOADING SAVED DATA~n"),
     {ok, UsersDirs} = file:list_dir(Path),
     io:format("All users: "),
     io:format(UsersDirs),
     io:format("~n"),
-    ok = load_calendars([filename:join([Path, D, <<"calendar/">>]) || D <- UsersDirs]),
+    % ok = load_calendars([filename:join([Path, D, <<"calendar/">>]) || D <- UsersDirs]),
+    % load event to ets
+    case UsersDirs of
+        [] ->
+            ok;
+        _ ->
+            ok = load_calendars_events([filename:join([Path, D, <<"event_calendar.ics">>]) || D <- UsersDirs])
+    end,
     io:format("LOADING FINISHED~n").
 
-%% @doc Recursive function that loads the calendars of the users into the calendar ets.
-load_calendars([]) ->
-    ok;
-
-load_calendars([Directory | Directories]) ->
-    ok = load_calendar(Directory),
-    load_calendars(Directories).
-
-load_calendar(Directory) ->
-    {ok, Filenames} = file:list_dir(Directory),
-    Username = filename:basename(filename:dirname(Directory)),
-    io:format(<<Username/binary, "'s calendar is loading...">>),
-    ok = load_files(Username, [filename:join([Directory, Fn]) || Fn <- Filenames]),
-    io:format("Calendar loading finished~n~n"),
+%% @doc Load the saved user calendar events into the calendar ets.
+load_calendars_events(Path) ->
+    lists:foreach(fun(Calendar) ->
+        {ok, CalendarData} = file:read_file(Calendar),
+        ParsedCalendar = eics:decode(CalendarData),
+        EventsList = maps:get(events, ParsedCalendar),
+        TimezonesList = maps:get(timezones, ParsedCalendar),
+        Username = list_to_binary(lists:nth(3, maps:get('x-owner', ParsedCalendar))),
+        lists:foreach(fun(Event) ->
+                            DtStartTZid = lists:nth(3, lists:nth(2, lists:append(lists:nth(2, maps:get(dtstart, Event))))),
+                            DtEndTZid = lists:nth(3, lists:nth(2, lists:append(lists:nth(2, maps:get(dtend, Event))))),
+                            EventTimezones = case DtStartTZid =:= DtEndTZid of
+                                true ->
+                                    lists:foldl(fun(Timezone, TZ) ->
+                                                            case DtStartTZid =:= lists:nth(3, maps:get(tzid, Timezone)) of
+                                                                true ->
+                                                                    lists:append(TZ, Timezone);
+                                                                false ->
+                                                                    TZ
+                                                            end
+                                                end, [], TimezonesList);
+                                false ->
+                                    lists:foldl(fun(Timezone, TZ) ->
+                                                            case (DtStartTZid =:= lists:nth(3, maps:get(tzid, Timezone))) or (DtEndTZid =:= lists:nth(3, maps:get(tzid, Timezone))) of
+                                                                true ->
+                                                                    lists:append(TZ, [Timezone]);
+                                                                false ->
+                                                                    TZ
+                                                            end
+                                                end, [], TimezonesList)
+                                            end,
+                        Uid = list_to_binary(lists:nth(3, maps:get(uid, Event))),
+                        NewEvent = eics:encode(#{events => Event, 
+                                    prodid => ["PRODID", 58, "Ecalendar 0.0.1", "\r\n"], 
+                                    version => ["VERSION", 58, "2.0", "\r\n"], 
+                                    timezones => EventTimezones,
+                                    todos => [], 
+                                    type => calendar
+                                    }),
+                        Etag = create_etag(eics:decode(NewEvent), (byte_size(NewEvent) + 33)),
+                        Uri = <<"/", Username/binary, "/calendar/", Uid/binary, ".ics">>,
+                        ets:insert(calendar, {Uri, [NewEvent, Etag, Username, eics:decode(NewEvent)]})
+                        end, EventsList)
+                end, Path),
     ok.
 
-%% @doc Recursive function that loads the events of a user into the calendar ets.
--spec load_files(binary(), [string() | binary()]) -> ok.
-load_files(_, []) ->
-    ok;
-
-load_files(Username, [Path | Paths]) ->
-    ok = load_file(Username, Path),
-    load_files(Username, Paths).
-
-%% @doc Load the event of a user into the calendar ets.
--spec load_file(Username :: binary(), string() | binary()) -> ok.
-load_file(Username, Path) ->
-    Filename = filename:basename(Path),
-    {ok, RawFile} = file:read_file(Path),
-    SplitRawFile = binary:split(RawFile, <<"\r\n">>),
-    Etag = lists:nth(1, SplitRawFile),
-    Data = lists:nth(2, SplitRawFile),
-    Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
-    ParsedBody = eics:decode(Data),
-    ets:insert(calendar, {Uri, [Data, Etag, Username, ParsedBody]}),
-    ok.
-
-%% @doc Write the calendar component into an ics file.
--spec write_to_file(User :: binary(), Key :: binary()) -> ok.
-write_to_file(User, URI) ->
-    io:format("SAVING EVENT TO FILE~n"),
-    io:format(User),
-    io:format("-----"),
-    io:format(URI),
-    io:format("~n"),
-    BaseDir = code:priv_dir(?APPLICATION),
-    {ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data", URI/binary>>]), [write, read, binary]),
-    [{URI, CalendarList} | _] = ets:lookup(calendar, URI),
-    ComponentData = lists:nth(1, CalendarList),
-    ComponentEtag = lists:nth(2, CalendarList),
-    file:write(OpenedFile, <<ComponentEtag/binary, "\r\n", ComponentData/binary>>),
-    file:close(OpenedFile),
-    io:format("EVENT SAVED~n").
+%% @doc Generate etag for an ics event PUT request.
+-spec create_etag(ParsedICS :: #{}, Length :: binary()) -> binary().
+create_etag(ParsedICS, Length) ->
+    EventMapList = maps:get(events, ParsedICS),
+    Mtime = lists:nth(3, maps:get('last-modified', lists:nth(1, EventMapList))),
+    UID = lists:nth(3, maps:get('uid', lists:nth(1, EventMapList))),
+    Result = integer_to_binary(erlang:phash2({UID, Length, Mtime}, 16#ffffffff)),
+    <<"\"", Result/binary, "\"">>.
 
 %% @doc Get the TZID list of all timezones in a user's calendar.
 -spec get_calendar_tzids(Username :: binary()) -> [binary()].
@@ -307,15 +313,70 @@ get_calendar_tzids(Username) ->
                                         end,
                                         [], TimezonesList).
 
-%% @doc Get the TZID list of all timezones in a user's calendar.
--spec get_calendar_events(Username :: binary()) -> [binary()].
-get_calendar_events(Username) ->
-    BaseDir = code:priv_dir(?APPLICATION),
-    {ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
-    ParsedCalendar = eics:decode(CalendarData),
-    EventList = maps:get(events, ParsedCalendar),
-    lists:foldl(fun(Event, EventUIDs) -> 
-                                        Uid = lists:nth(3, maps:get(uid, Event)),
-                                        lists:append(EventUIDs, [Uid])
-                                        end,
-                                        [], EventList).
+%% @doc Recursive function that loads the calendars of the users into the calendar ets.
+%load_calendars([]) ->
+    %ok;
+
+%load_calendars([Directory | Directories]) ->
+    %ok = load_calendar(Directory),
+    %load_calendars(Directories).
+
+%load_calendar(Directory) ->
+    %{ok, Filenames} = file:list_dir(Directory),
+    %Username = filename:basename(filename:dirname(Directory)),
+    %io:format(<<Username/binary, "'s calendar is loading...">>),
+    %ok = load_files(Username, [filename:join([Directory, Fn]) || Fn <- Filenames]),
+    %io:format("Calendar loading finished~n~n"),
+    %ok.
+
+%%% @doc Recursive function that loads the events of a user into the calendar ets.
+%-spec load_files(binary(), [string() | binary()]) -> ok.
+%load_files(_, []) ->
+    %ok;
+
+%load_files(Username, [Path | Paths]) ->
+    %ok = load_file(Username, Path),
+    %load_files(Username, Paths).
+
+%%% @doc Load the event of a user into the calendar ets.
+%-spec load_file(Username :: binary(), string() | binary()) -> ok.
+%load_file(Username, Path) ->
+    %Filename = filename:basename(Path),
+    %{ok, RawFile} = file:read_file(Path),
+    %SplitRawFile = binary:split(RawFile, <<"\r\n">>),
+    %Etag = lists:nth(1, SplitRawFile),
+    %Data = lists:nth(2, SplitRawFile),
+    %Uri = <<"/", Username/binary, "/calendar/", Filename/binary>>,
+    %ParsedBody = eics:decode(Data),
+    %ets:insert(calendar, {Uri, [Data, Etag, Username, ParsedBody]}),
+    %ok.
+
+%% @doc Write the calendar component into an ics file.
+%-spec write_to_file(User :: binary(), Key :: binary()) -> ok.
+%write_to_file(User, URI) ->
+    %io:format("SAVING EVENT TO FILE~n"),
+    %io:format(User),
+    %io:format("-----"),
+    %io:format(URI),
+    %io:format("~n"),
+    %BaseDir = code:priv_dir(?APPLICATION),
+    %{ok, OpenedFile} = file:open(filename:join([BaseDir, <<"data", URI/binary>>]), [write, read, binary]),
+    %[{URI, CalendarList} | _] = ets:lookup(calendar, URI),
+    %ComponentData = lists:nth(1, CalendarList),
+    %ComponentEtag = lists:nth(2, CalendarList),
+    %file:write(OpenedFile, <<ComponentEtag/binary, "\r\n", ComponentData/binary>>),
+    %file:close(OpenedFile),
+    %io:format("EVENT SAVED~n").
+
+%% @doc Get the uid list of all events in a user's calendar.
+%-spec get_calendar_events(Username :: binary()) -> [binary()].
+%get_calendar_events(Username) ->
+    %BaseDir = code:priv_dir(?APPLICATION),
+    %{ok, CalendarData} = file:read_file(filename:join([BaseDir, <<"data">>, Username, <<"event_calendar.ics">>])),
+    %ParsedCalendar = eics:decode(CalendarData),
+    %EventList = maps:get(events, ParsedCalendar),
+    %lists:foldl(fun(Event, EventUIDs) -> 
+                                        %Uid = lists:nth(3, maps:get(uid, Event)),
+                                        %lists:append(EventUIDs, [Uid])
+                                        %end,
+                                        %[], EventList).
